@@ -30,6 +30,13 @@ import { AuthService } from '../../../features/auth/auth.service';
                 Criar Evento
               </a>
             }
+            <a
+              routerLink="/reservations"
+              routerLinkActive="underline underline-offset-4"
+              class="hover:text-indigo-200 transition-colors"
+            >
+              Minhas Reservas
+            </a>
             <span class="text-indigo-300 text-xs hidden sm:inline">
               {{ authService.currentUser()?.email }}
             </span>

@@ -35,6 +35,14 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("CONFLICT", ex.getMessage());
     }
 
+    // IllegalStateException: usado para violar regras de negócio como assentos insuficientes
+    // ou tentar cancelar uma reserva que não está PENDING.
+    @ExceptionHandler(IllegalStateException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ErrorResponse handleIllegalState(IllegalStateException ex) {
+        return new ErrorResponse("BUSINESS_RULE_VIOLATION", ex.getMessage());
+    }
+
     // Acionado quando @Valid falha em um @RequestBody.
     // Coleta todos os erros de campo e os junta em uma mensagem legível.
     @ExceptionHandler(MethodArgumentNotValidException.class)

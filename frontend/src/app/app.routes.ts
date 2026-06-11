@@ -22,6 +22,13 @@ export const routes: Routes = [
       import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
   },
   {
+    path: 'reservations',
+    canActivate: [() => import('./core/guards/auth.guard').then(m => m.authGuard)],
+    loadComponent: () =>
+      import('./features/reservations/my-reservations/my-reservations.component')
+        .then((m) => m.MyReservationsComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

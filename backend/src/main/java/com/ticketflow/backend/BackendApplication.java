@@ -2,12 +2,12 @@ package com.ticketflow.backend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
-// @SpringBootApplication combina três anotações:
-//   @Configuration  → esta classe pode declarar beans Spring
-//   @EnableAutoConfiguration → Spring Boot configura automaticamente tudo que encontrar no classpath
-//   @ComponentScan  → escaneia este pacote e subpacotes por @Service, @Repository, @Controller etc.
+// @EnableScheduling: ativa o suporte a @Scheduled no contexto Spring.
+// Sem isso, os métodos anotados com @Scheduled são ignorados silenciosamente.
 @SpringBootApplication
+@EnableScheduling
 public class BackendApplication {
 
     public static void main(String[] args) {
