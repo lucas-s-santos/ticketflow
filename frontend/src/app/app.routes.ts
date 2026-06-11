@@ -1,7 +1,5 @@
 import { Routes } from '@angular/router';
 
-// loadChildren: lazy loading — o código de cada feature só é baixado quando o usuário navega até ela.
-// Isso melhora o tempo de carregamento inicial do app.
 export const routes: Routes = [
   {
     path: '',
@@ -17,6 +15,11 @@ export const routes: Routes = [
     path: 'login',
     loadChildren: () =>
       import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
+  },
+  {
+    path: 'register',
+    loadComponent: () =>
+      import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
   },
   {
     path: '**',

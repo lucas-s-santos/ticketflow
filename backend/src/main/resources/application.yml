@@ -33,6 +33,14 @@ springdoc:
   swagger-ui:
     path: /swagger-ui.html
 
+app:
+  security:
+    jwt:
+      # Chave em Base64 com pelo menos 256 bits (32 bytes) para HMAC-SHA256.
+      # Em produção, substituir por variável de ambiente: APP_SECURITY_JWT_SECRET_KEY
+      secret-key: "dGlja2V0Zmxvdy1kZXYtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc="
+      expiration-ms: 86400000   # 24 horas em milissegundos
+
 logging:
   level:
     com.ticketflow: DEBUG

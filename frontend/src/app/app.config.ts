@@ -1,16 +1,15 @@
 import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 
 import { routes } from './app.routes';
+import { jwtInterceptor } from './core/interceptors/jwt.interceptor';
 
-// provideRouter: configura o roteador com as rotas definidas em app.routes.ts
-// provideHttpClient: habilita o HttpClient para requisições HTTP (obrigatório para usar inject(HttpClient))
-// provideZoneChangeDetection: otimiza a detecção de mudanças agrupando eventos
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(),
+    // withInterceptors: registra interceptors funcionais que processam toda requisição HTTP
+    provideHttpClient(withInterceptors([jwtInterceptor])),
   ],
 };

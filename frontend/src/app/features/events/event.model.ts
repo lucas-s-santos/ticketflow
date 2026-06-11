@@ -1,3 +1,17 @@
+export interface TicketSectorResponse {
+  id: string;
+  name: string;
+  capacity: number;
+  availableSeats: number;
+  price: number;
+}
+
+export interface TicketSectorRequest {
+  name: string;
+  capacity: number;
+  price: number;
+}
+
 export interface EventResponse {
   id: string;
   name: string;
@@ -5,6 +19,7 @@ export interface EventResponse {
   date: string;
   location: string;
   createdAt: string;
+  sectors: TicketSectorResponse[];
 }
 
 export interface EventRequest {
@@ -12,4 +27,5 @@ export interface EventRequest {
   description?: string;
   date: string;
   location: string;
+  sectors: TicketSectorRequest[];
 }
