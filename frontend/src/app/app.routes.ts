@@ -29,6 +29,18 @@ export const routes: Routes = [
         .then((m) => m.MyReservationsComponent),
   },
   {
+    path: 'organizer',
+    canActivate: [() => import('./core/guards/organizer.guard').then(m => m.organizerGuard)],
+    loadComponent: () =>
+      import('./features/organizer/dashboard/dashboard.component').then((m) => m.DashboardComponent),
+  },
+  {
+    path: 'organizer/validate',
+    canActivate: [() => import('./core/guards/organizer.guard').then(m => m.organizerGuard)],
+    loadComponent: () =>
+      import('./features/organizer/validate/validate-ticket.component').then((m) => m.ValidateTicketComponent),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

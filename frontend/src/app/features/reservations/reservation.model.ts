@@ -13,4 +13,6 @@ export interface ReservationResponse {
   status: 'PENDING' | 'CONFIRMED' | 'EXPIRED' | 'CANCELLED';
   expiresAt: string;
   createdAt: string;
+  ticketToken?: string | null;   // conteúdo do QR (só quando CONFIRMED)
+  checkedInAt?: string | null;   // data do check-in; null = não usado
 }

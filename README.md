@@ -2,7 +2,7 @@
 
 Plataforma de venda de ingressos para eventos, com gateway de pagamento simulado, construída para demonstrar conceitos de engenharia de software em um cenário realista: **autenticação JWT**, **controle de concorrência com lock pessimista**, e **processamento de pagamento assíncrono com mensageria e idempotência**.
 
-> Projeto de portfólio em construção incremental por fases. Atualmente nas **Fases 1–5 de 7**.
+> Projeto de portfólio em construção incremental por fases. Atualmente nas **Fases 1–6 de 7**.
 
 ---
 
@@ -75,7 +75,7 @@ npm start
 - [x] **Fase 3 — Reservas e Concorrência:** lock pessimista (`SELECT ... FOR UPDATE`) contra sobrevenda, expiração automática de reservas, teste de concorrência com 20 threads
 - [x] **Fase 4 — Gateway de Pagamento:** checkout assíncrono via RabbitMQ, idempotência (`Idempotency-Key`), confirmação de reserva
 - [x] **Fase 5 — Webhooks e Resiliência:** webhook assinado com HMAC-SHA256, retry com backoff exponencial, dead-letter queue (DLQ)
-- [ ] **Fase 6 — Pós-compra e Painéis:** QR code, dashboard do organizador
+- [x] **Fase 6 — Pós-compra e Painéis:** ingresso com QR code (token HMAC), check-in na portaria, dashboard de vendas do organizador
 - [ ] **Fase 7 — Qualidade e Deploy:** CI/CD, Render, Vercel, Neon
 
 ---

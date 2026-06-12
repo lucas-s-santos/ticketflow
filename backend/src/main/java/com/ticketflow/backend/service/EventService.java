@@ -5,11 +5,13 @@ import com.ticketflow.backend.dto.EventResponseDto;
 import com.ticketflow.backend.dto.TicketSectorResponseDto;
 import com.ticketflow.backend.entity.Event;
 import com.ticketflow.backend.entity.TicketSector;
+import com.ticketflow.backend.entity.User;
 import com.ticketflow.backend.exception.ResourceNotFoundException;
 import com.ticketflow.backend.repository.EventRepository;
 import com.ticketflow.backend.repository.TicketSectorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -41,8 +43,9 @@ public class EventService {
         return toResponseDto(event, sectors);
     }
 
-    public EventResponseDto create(EventRequestDto dto) {
+    public EventResponseDto create(EventRequestDto dto, User owner) {
         Event event = new Event();
+        event.setOwner(owner);   // vincula o evento ao organizador que o criou
         event.setName(dto.name());
         event.setDescription(dto.description());
         event.setDate(dto.date());
@@ -50,12 +53,13 @@ public class EventService {
         Event saved = eventRepository.save(event);
 
         List<TicketSector> sectors = saveSectors(saved, dto);
-        log.info("Evento criado: id={}, setores={}", saved.getId(), sectors.size());
+        log.info("Evento criado: id={}, dono={}, setores={}", saved.getId(), owner.getId(), sectors.size());
         return toResponseDto(saved, sectors);
     }
 
-    public EventResponseDto update(UUID id, EventRequestDto dto) {
+    public EventResponseDto update(UUID id, EventRequestDto dto, User currentUser) {
         Event event = findEventOrThrow(id);
+        assertOwnership(event, currentUser);
         event.setName(dto.name());
         event.setDescription(dto.description());
         event.setDate(dto.date());
@@ -63,19 +67,25 @@ public class EventService {
         eventRepository.save(event);
 
         // Substitui todos os setores: deleta os antigos e cria novos.
-        // Simples e correto para esta fase; Fase 3 adicionará verificação de reservas ativas.
         ticketSectorRepository.deleteByEventId(id);
         List<TicketSector> sectors = saveSectors(event, dto);
         return toResponseDto(event, sectors);
     }
 
-    public void delete(UUID id) {
-        if (!eventRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Evento não encontrado com id: " + id);
-        }
+    public void delete(UUID id, User currentUser) {
+        Event event = findEventOrThrow(id);
+        assertOwnership(event, currentUser);
         // Setores são deletados automaticamente pelo ON DELETE CASCADE do banco (V3 migration).
         eventRepository.deleteById(id);
         log.info("Evento removido: id={}", id);
+    }
+
+    // Eventos com dono só podem ser alterados pelo dono.
+    // Eventos legados (sem dono, criados antes da Fase 6) continuam editáveis por qualquer organizador.
+    private void assertOwnership(Event event, User currentUser) {
+        if (event.getOwner() != null && !event.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("Este evento pertence a outro organizador");
+        }
     }
 
     private List<TicketSector> saveSectors(Event event, EventRequestDto dto) {

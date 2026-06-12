@@ -1,5 +1,6 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe } from '@angular/common';
+import { QRCodeModule } from 'angularx-qrcode';
 import { interval, switchMap } from 'rxjs';
 import { ReservationService } from '../reservation.service';
 import { ReservationResponse } from '../reservation.model';
@@ -9,7 +10,7 @@ import { PaymentMethod } from '../../payments/payment.model';
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe],
+  imports: [DatePipe, CurrencyPipe, QRCodeModule],
   template: `
     <div class="max-w-4xl mx-auto px-6 py-10">
       <h2 class="text-2xl font-bold text-gray-900 mb-6">Minhas Reservas</h2>
@@ -76,6 +77,11 @@ import { PaymentMethod } from '../../payments/payment.model';
                       </button>
                     }
                   </div>
+                } @else if (r.status === 'CONFIRMED' && r.ticketToken) {
+                  <button (click)="toggleTicket(r.id)"
+                    class="shrink-0 text-sm bg-gray-900 text-white px-4 py-1.5 rounded-lg hover:bg-gray-700 font-medium transition-colors">
+                    {{ showingTicketId() === r.id ? 'Ocultar ingresso' : 'Ver ingresso' }}
+                  </button>
                 }
               </div>
 
@@ -83,6 +89,20 @@ import { PaymentMethod } from '../../payments/payment.model';
                 <p class="mt-3 text-sm text-red-600">
                   Pagamento recusado ou não concluído. Tente novamente.
                 </p>
+              }
+
+              <!-- Ingresso com QR code -->
+              @if (showingTicketId() === r.id && r.ticketToken) {
+                <div class="mt-4 pt-4 border-t border-gray-100 flex flex-col items-center">
+                  @if (r.checkedInAt) {
+                    <div class="mb-3 px-3 py-1.5 bg-gray-100 text-gray-600 text-sm rounded-full">
+                      Ingresso utilizado em {{ r.checkedInAt | date:'dd/MM/yyyy HH:mm' }}
+                    </div>
+                  } @else {
+                    <p class="text-sm text-gray-500 mb-3">Apresente este QR na entrada do evento</p>
+                  }
+                  <qrcode [qrdata]="r.ticketToken" [width]="200" [errorCorrectionLevel]="'M'"></qrcode>
+                </div>
               }
             </div>
           }
@@ -99,9 +119,10 @@ export class MyReservationsComponent implements OnInit {
   loading = signal(true);
   cancelling = signal<string | null>(null);
 
-  payingId = signal<string | null>(null);     // reserva com seletor de método aberto
-  processingId = signal<string | null>(null); // reserva com pagamento em polling
-  errorId = signal<string | null>(null);      // reserva com pagamento recusado/falho
+  payingId = signal<string | null>(null);      // reserva com seletor de método aberto
+  processingId = signal<string | null>(null);  // reserva com pagamento em polling
+  errorId = signal<string | null>(null);       // reserva com pagamento recusado/falho
+  showingTicketId = signal<string | null>(null); // reserva com QR do ingresso aberto
 
   ngOnInit(): void {
     this.load();
@@ -110,6 +131,10 @@ export class MyReservationsComponent implements OnInit {
   startPaying(id: string): void {
     this.errorId.set(null);
     this.payingId.set(id);
+  }
+
+  toggleTicket(id: string): void {
+    this.showingTicketId.set(this.showingTicketId() === id ? null : id);
   }
 
   checkout(reservation: ReservationResponse, method: PaymentMethod): void {

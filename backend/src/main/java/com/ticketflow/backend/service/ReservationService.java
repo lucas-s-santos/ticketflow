@@ -29,6 +29,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final TicketSectorRepository ticketSectorRepository;
     private final UserRepository userRepository;
+    private final TicketTokenService ticketTokenService;
 
     @Transactional
     public ReservationResponseDto reserve(UUID userId, ReservationRequestDto dto) {
@@ -96,6 +97,10 @@ public class ReservationService {
     }
 
     ReservationResponseDto toResponseDto(Reservation r) {
+        // O token do ingresso só faz sentido para reservas pagas (CONFIRMED).
+        String ticketToken = r.getStatus() == ReservationStatus.CONFIRMED
+                ? ticketTokenService.generate(r.getId())
+                : null;
         return new ReservationResponseDto(
                 r.getId(),
                 r.getTicketSector().getId(),
@@ -105,7 +110,9 @@ public class ReservationService {
                 r.getTotalPrice(),
                 r.getStatus().name(),
                 r.getExpiresAt(),
-                r.getCreatedAt()
+                r.getCreatedAt(),
+                ticketToken,
+                r.getCheckedInAt()
         );
     }
 }

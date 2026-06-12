@@ -16,4 +16,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     // O Spring Data interpreta o nome do método e gera o SQL correspondente:
     // SELECT * FROM events ORDER BY date ASC
     List<Event> findAllByOrderByDateAsc();
+
+    // Eventos de um organizador específico (usado no dashboard).
+    List<Event> findByOwnerIdOrderByDateAsc(UUID ownerId);
 }

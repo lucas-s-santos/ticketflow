@@ -25,6 +25,12 @@ public class Event {
     @Column(name = "id", updatable = false, nullable = false)
     private UUID id;
 
+    // Organizador dono do evento. LAZY: só carrega o User quando acessado.
+    // Nullable porque eventos criados antes da Fase 6 não têm dono.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private User owner;
+
     @Column(name = "name", nullable = false, length = 255)
     private String name;
 

@@ -68,6 +68,10 @@ app:
     secret: "ticketflow-webhook-hmac-secret-key-troque-em-producao"
     url: http://localhost:8080/api/webhooks/payments   # destino do webhook do gateway simulado
 
+  # Ingresso: segredo HMAC que assina os tokens do QR code (separado do webhook)
+  ticket:
+    secret: "ticketflow-ticket-hmac-secret-troque-em-producao"
+
 logging:
   level:
     com.ticketflow: DEBUG

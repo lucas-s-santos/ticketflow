@@ -49,6 +49,11 @@ public class Reservation {
     @Column(name = "expires_at", nullable = false)
     private OffsetDateTime expiresAt;
 
+    // Marca de check-in: preenchida quando o ingresso é validado na portaria.
+    // NULL = ainda não usado. Impede reuso do mesmo QR.
+    @Column(name = "checked_in_at")
+    private OffsetDateTime checkedInAt;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

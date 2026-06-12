@@ -63,6 +63,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/events/**").hasRole("ORGANIZADOR")
                         .requestMatchers(HttpMethod.DELETE, "/api/events/**").hasRole("ORGANIZADOR")
 
+                        // Painel e validação de ingressos: exclusivos do organizador
+                        .requestMatchers("/api/organizer/**").hasRole("ORGANIZADOR")
+                        .requestMatchers(HttpMethod.POST, "/api/tickets/validate").hasRole("ORGANIZADOR")
+
                         // Qualquer outra rota exige autenticação
                         .anyRequest().authenticated()
                 )

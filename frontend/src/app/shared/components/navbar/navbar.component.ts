@@ -24,6 +24,13 @@ import { AuthService } from '../../../features/auth/auth.service';
           @if (authService.isLoggedIn()) {
             @if (authService.isOrganizador()) {
               <a
+                routerLink="/organizer"
+                routerLinkActive="underline underline-offset-4"
+                class="hover:text-indigo-200 transition-colors"
+              >
+                Painel
+              </a>
+              <a
                 routerLink="/events/new"
                 class="hover:text-indigo-200 transition-colors"
               >
