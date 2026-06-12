@@ -8,6 +8,13 @@ spring:
     password: ticketflow_pass
     driver-class-name: org.postgresql.Driver
 
+  # Conexão com o RabbitMQ (mesmas credenciais do docker-compose.yml)
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: ticketflow_user
+    password: ticketflow_pass
+
   jpa:
     hibernate:
       # CRÍTICO: Flyway gerencia o schema. Hibernate apenas valida.
@@ -40,6 +47,11 @@ app:
       # Em produção, substituir por variável de ambiente: APP_SECURITY_JWT_SECRET_KEY
       secret-key: "dGlja2V0Zmxvdy1kZXYtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc="
       expiration-ms: 86400000   # 24 horas em milissegundos
+
+  # Gateway de pagamento simulado
+  payment:
+    failure-rate: 0.0          # 0.0 = sempre aprova; 0.15 simularia ~15% de recusas
+    processing-delay-ms: 2000  # latência simulada do gateway (0 nos testes)
 
 logging:
   level:

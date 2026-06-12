@@ -14,8 +14,10 @@ export class ApiService {
     return this.http.get<T>(`${this.baseUrl}${path}`);
   }
 
-  post<T>(path: string, body: unknown): Observable<T> {
-    return this.http.post<T>(`${this.baseUrl}${path}`, body);
+  // headers opcionais — usado pelo checkout para enviar a Idempotency-Key.
+  // Chamadas existentes que não passam o 3º argumento continuam funcionando.
+  post<T>(path: string, body: unknown, headers?: Record<string, string>): Observable<T> {
+    return this.http.post<T>(`${this.baseUrl}${path}`, body, { headers });
   }
 
   put<T>(path: string, body: unknown): Observable<T> {

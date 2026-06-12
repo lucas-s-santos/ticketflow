@@ -2,9 +2,11 @@ package com.ticketflow.backend.exception;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,6 +31,15 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("INVALID_CREDENTIALS", "Email ou senha inválidos");
     }
 
+    // AccessDeniedException lançada DENTRO de um service (ex.: pagar/cancelar reserva alheia)
+    // chega aqui pelo @RestControllerAdvice. Sem este handler, cairia no genérico → 500.
+    // (Negações no nível do filtro do Spring Security são tratadas pelo accessDeniedHandler da SecurityConfig.)
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDenied(AccessDeniedException ex) {
+        return new ErrorResponse("FORBIDDEN", "Acesso negado");
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(IllegalArgumentException ex) {
@@ -41,6 +52,13 @@ public class GlobalExceptionHandler {
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleIllegalState(IllegalStateException ex) {
         return new ErrorResponse("BUSINESS_RULE_VIOLATION", ex.getMessage());
+    }
+
+    // Acionado quando um header obrigatório (ex.: Idempotency-Key no checkout) não é enviado.
+    @ExceptionHandler(MissingRequestHeaderException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public ErrorResponse handleMissingHeader(MissingRequestHeaderException ex) {
+        return new ErrorResponse("MISSING_HEADER", "Header obrigatório ausente: " + ex.getHeaderName());
     }
 
     // Acionado quando @Valid falha em um @RequestBody.

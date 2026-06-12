@@ -80,6 +80,13 @@
             <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
 
+        <!-- AMQP: integração com RabbitMQ (RabbitTemplate para publicar, @RabbitListener para consumir).
+             Usado no gateway de pagamento para processar checkout de forma assíncrona. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
+
         <!-- JJWT: cria e valida JSON Web Tokens.
              api = interfaces de compilação | impl e jackson = implementação em runtime -->
         <dependency>
