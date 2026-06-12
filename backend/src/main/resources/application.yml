@@ -14,6 +14,16 @@ spring:
     port: 5672
     username: ticketflow_user
     password: ticketflow_pass
+    listener:
+      simple:
+        retry:
+          enabled: true
+          max-attempts: 3          # tentativas antes de desistir
+          initial-interval: 2000   # 2s na 1ª retentativa, dobrando a cada vez
+          multiplier: 2
+          max-interval: 10000
+        # mensagem que esgotou as tentativas vai para a DLQ em vez de voltar pra fila
+        default-requeue-rejected: false
 
   jpa:
     hibernate:
@@ -52,6 +62,11 @@ app:
   payment:
     failure-rate: 0.0          # 0.0 = sempre aprova; 0.15 simularia ~15% de recusas
     processing-delay-ms: 2000  # latência simulada do gateway (0 nos testes)
+
+  # Webhook do gateway: assinatura HMAC e URL de entrega
+  webhook:
+    secret: "ticketflow-webhook-hmac-secret-key-troque-em-producao"
+    url: http://localhost:8080/api/webhooks/payments   # destino do webhook do gateway simulado
 
 logging:
   level:

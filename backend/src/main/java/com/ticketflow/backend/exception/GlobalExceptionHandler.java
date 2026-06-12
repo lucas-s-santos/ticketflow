@@ -40,6 +40,13 @@ public class GlobalExceptionHandler {
         return new ErrorResponse("FORBIDDEN", "Acesso negado");
     }
 
+    // Assinatura HMAC do webhook não confere — requisição forjada ou adulterada.
+    @ExceptionHandler(WebhookVerificationException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ErrorResponse handleWebhookVerification(WebhookVerificationException ex) {
+        return new ErrorResponse("INVALID_SIGNATURE", ex.getMessage());
+    }
+
     @ExceptionHandler(IllegalArgumentException.class)
     @ResponseStatus(HttpStatus.CONFLICT)
     public ErrorResponse handleConflict(IllegalArgumentException ex) {

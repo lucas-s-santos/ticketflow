@@ -3,7 +3,9 @@ package com.ticketflow.backend.config;
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;
 import org.springframework.amqp.core.DirectExchange;
+import org.springframework.amqp.core.FanoutExchange;
 import org.springframework.amqp.core.Queue;
+import org.springframework.amqp.core.QueueBuilder;
 import org.springframework.amqp.rabbit.connection.ConnectionFactory;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
@@ -23,10 +25,35 @@ public class RabbitMQConfig {
     public static final String QUEUE = "payments.process.queue";
     public static final String ROUTING_KEY = "payment.process";
 
-    // Queue durável: sobrevive a um restart do RabbitMQ (mensagens não se perdem).
+    // Dead-letter: para onde vão as mensagens que esgotaram as retentativas.
+    public static final String DLX = "payments.dlx";
+    public static final String DLQ = "payments.process.queue.dlq";
+
+    // Queue durável com dead-letter exchange configurada.
+    // Quando uma mensagem é rejeitada após esgotar os retries (default-requeue-rejected=false),
+    // o RabbitMQ a encaminha automaticamente para a DLX → DLQ, em vez de descartá-la.
     @Bean
     public Queue paymentsQueue() {
-        return new Queue(QUEUE, true);
+        return QueueBuilder.durable(QUEUE)
+                .withArgument("x-dead-letter-exchange", DLX)
+                .build();
+    }
+
+    // Dead-letter exchange (fanout: entrega a todas as filas ligadas, sem routing key).
+    @Bean
+    public FanoutExchange deadLetterExchange() {
+        return new FanoutExchange(DLX);
+    }
+
+    // Fila onde as mensagens "envenenadas" ficam para inspeção/reprocessamento manual.
+    @Bean
+    public Queue deadLetterQueue() {
+        return QueueBuilder.durable(DLQ).build();
+    }
+
+    @Bean
+    public Binding deadLetterBinding(Queue deadLetterQueue, FanoutExchange deadLetterExchange) {
+        return BindingBuilder.bind(deadLetterQueue).to(deadLetterExchange);
     }
 
     // DirectExchange: roteia mensagens para filas cuja routing key bate exatamente.

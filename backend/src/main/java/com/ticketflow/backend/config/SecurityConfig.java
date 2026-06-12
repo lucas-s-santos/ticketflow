@@ -55,6 +55,8 @@ public class SecurityConfig {
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/events/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()
+                        // Webhooks: protegidos por assinatura HMAC, não por JWT
+                        .requestMatchers("/api/webhooks/**").permitAll()
 
                         // Apenas ORGANIZADOR pode criar, atualizar e deletar eventos
                         .requestMatchers(HttpMethod.POST, "/api/events/**").hasRole("ORGANIZADOR")
