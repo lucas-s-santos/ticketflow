@@ -27,6 +27,8 @@ dist/
 # ===========================
 .env
 .env.*
+# exceção: o template de variáveis (sem segredos) é versionado
+!.env.example
 *.pem
 *.key
 secrets/

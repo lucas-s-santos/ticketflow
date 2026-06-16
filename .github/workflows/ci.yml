@@ -1,0 +1,76 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend (build + testes)
+    runs-on: ubuntu-latest
+
+    # Postgres e RabbitMQ reais para os testes de integração (@SpringBootTest).
+    # Credenciais batem com os defaults do application.yml (localhost:5432 / :5672).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ticketflow_user
+          POSTGRES_PASSWORD: ticketflow_pass
+          POSTGRES_DB: ticketflow
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ticketflow_user -d ticketflow"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+
+      rabbitmq:
+        image: rabbitmq:3.13-management-alpine
+        env:
+          RABBITMQ_DEFAULT_USER: ticketflow_user
+          RABBITMQ_DEFAULT_PASS: ticketflow_pass
+        ports:
+          - 5672:5672
+        options: >-
+          --health-cmd "rabbitmq-diagnostics -q ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Build e testes
+        working-directory: backend
+        run: mvn -B verify
+
+  frontend:
+    name: Frontend (build)
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build de produção
+        working-directory: frontend
+        run: npm run build

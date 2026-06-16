@@ -1,0 +1,7 @@
+# Perfil de produção (ativado por SPRING_PROFILES_ACTIVE=prod no Render).
+# Sobrescreve apenas o que muda em produção; o resto vem do application.yml + env vars.
+logging:
+  level:
+    com.ticketflow: INFO
+    org.hibernate.SQL: WARN
+    org.springframework.web: WARN

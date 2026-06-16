@@ -1,0 +1,32 @@
+# Blueprint do Render: cria o backend a partir do Dockerfile.
+# No Render: New > Blueprint > conectar este repo. Depois preencha as env vars marcadas
+# com sync:false (segredos e URLs de Neon/CloudAMQP/Vercel) no painel.
+services:
+  - type: web
+    name: ticketflow-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /api/events
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: SPRING_DATASOURCE_URL
+        sync: false
+      - key: SPRING_DATASOURCE_USERNAME
+        sync: false
+      - key: SPRING_DATASOURCE_PASSWORD
+        sync: false
+      - key: SPRING_RABBITMQ_ADDRESSES
+        sync: false
+      - key: APP_SECURITY_JWT_SECRET_KEY
+        sync: false
+      - key: APP_WEBHOOK_SECRET
+        sync: false
+      - key: APP_WEBHOOK_URL
+        sync: false
+      - key: APP_TICKET_SECRET
+        sync: false
+      - key: APP_CORS_ALLOWED_ORIGINS
+        sync: false

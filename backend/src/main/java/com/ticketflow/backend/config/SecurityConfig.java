@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ticketflow.backend.exception.ErrorResponse;
 import com.ticketflow.backend.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -33,6 +34,10 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final ObjectMapper objectMapper;
+
+    // Origens permitidas no CORS, vindas de app.cors.allowed-origins (env var em produção).
+    @Value("${app.cors.allowed-origins}")
+    private String allowedOrigins;
 
     // SecurityFilterChain: define as regras de segurança HTTP.
     // Pense como um porteiro: recebe cada requisição e decide se deixa passar, pede credenciais, ou rejeita.
@@ -94,12 +99,12 @@ public class SecurityConfig {
                 .build();
     }
 
-    // CORS: permite que o Angular (porta 4200) faça chamadas para o Spring (porta 8080).
-    // Sem isso, o browser bloqueia as respostas do servidor por serem "origens cruzadas".
+    // CORS: permite que o Angular faça chamadas para o Spring.
+    // Em dev a origem é localhost:4200; em produção, a URL da Vercel (via env var).
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("http://localhost:4200"));
+        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
