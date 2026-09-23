@@ -1,7 +1,11 @@
-# TicketFlow — Convenções do Projeto
+# Canhoto — Convenções do Projeto
 
 ## Visão Geral
-TicketFlow é uma plataforma de venda de ingressos com gateway de pagamento simulado.
+Canhoto é uma plataforma de venda de ingressos com gateway de pagamento simulado.
+
+> O nome vem do pedaço do ingresso que fica com você depois de entrar — que aqui é
+> digital e assinado por HMAC. O pacote Java e o banco ainda usam `canhoto`,
+> nome anterior do projeto; a renomeação profunda está pendente.
 
 - **Backend:** Java 21 + Spring Boot 3.x → pasta `backend/`
 - **Frontend:** Angular 18+ (standalone) + Tailwind CSS → pasta `frontend/`
@@ -19,7 +23,7 @@ TicketFlow é uma plataforma de venda de ingressos com gateway de pagamento simu
 ```bash
 docker compose up -d
 ```
-- Postgres: `localhost:5432` (banco: `ticketflow`, user: `ticketflow_user`, pass: `ticketflow_pass`)
+- Postgres: `localhost:5432` (banco: `canhoto`, user: `canhoto_user`, pass: `canhoto_pass`)
 - RabbitMQ Management UI: http://localhost:15672
 
 ### 2. Subir backend
@@ -44,7 +48,7 @@ npm start
 
 ### Estrutura de Pacotes
 ```
-com.ticketflow.backend
+com.canhoto.backend
 ├── config/       → @Configuration beans (CORS, OpenAPI, Security)
 ├── controller/   → Recebe HTTP, delega ao service, retorna DTOs
 ├── dto/          → Java records: {Entity}RequestDto + {Entity}ResponseDto
@@ -141,9 +145,9 @@ test: adiciona teste de concorrência para reserva de ingressos
 
 ## Status das Fases
 - [x] Fase 1 — Fundação (monorepo, Docker, Event CRUD, Angular shell)
-- [ ] Fase 2 — Autenticação e Eventos (JWT, papéis, CRUD completo, telas)
-- [ ] Fase 3 — Reservas e Concorrência (lock pessimista, expiração, testes)
-- [ ] Fase 4 — Gateway de Pagamento (RabbitMQ, idempotência, checkout)
-- [ ] Fase 5 — Webhooks e Resiliência (HMAC, retry, DLQ)
-- [ ] Fase 6 — Pós-compra e Painéis (QR code, dashboard)
-- [ ] Fase 7 — Qualidade e Deploy (CI/CD, Render, Vercel, Neon)
+- [x] Fase 2 — Autenticação e Eventos (JWT, papéis, CRUD completo, telas)
+- [x] Fase 3 — Reservas e Concorrência (lock pessimista, expiração, testes)
+- [x] Fase 4 — Gateway de Pagamento (RabbitMQ, idempotência, checkout)
+- [x] Fase 5 — Webhooks e Resiliência (HMAC, retry, DLQ)
+- [x] Fase 6 — Pós-compra e Painéis (QR code, dashboard)
+- [x] Fase 7 — Qualidade e Deploy (CI/CD, Render, Vercel, Neon)

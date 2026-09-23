@@ -15,13 +15,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: ticketflow_user
-          POSTGRES_PASSWORD: ticketflow_pass
-          POSTGRES_DB: ticketflow
+          POSTGRES_USER: canhoto_user
+          POSTGRES_PASSWORD: canhoto_pass
+          POSTGRES_DB: canhoto
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U ticketflow_user -d ticketflow"
+          --health-cmd "pg_isready -U canhoto_user -d canhoto"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 10
@@ -29,8 +29,8 @@ jobs:
       rabbitmq:
         image: rabbitmq:3.13-management-alpine
         env:
-          RABBITMQ_DEFAULT_USER: ticketflow_user
-          RABBITMQ_DEFAULT_PASS: ticketflow_pass
+          RABBITMQ_DEFAULT_USER: canhoto_user
+          RABBITMQ_DEFAULT_PASS: canhoto_pass
         ports:
           - 5672:5672
         options: >-
@@ -70,6 +70,12 @@ jobs:
       - name: Instalar dependências
         working-directory: frontend
         run: npm ci
+
+      # Os specs ficam fora do build de producao, entao so o build nao pegaria
+      # um teste quebrado. Rodamos a suite explicitamente, em Chrome headless.
+      - name: Testes unitários
+        working-directory: frontend
+        run: npm test -- --watch=false --browsers=ChromeHeadless
 
       - name: Build de produção
         working-directory: frontend

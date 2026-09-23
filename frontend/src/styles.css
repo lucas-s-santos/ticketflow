@@ -2,3 +2,281 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===========================================================================
+   CANHOTO — tokens do sistema de design
+   ---------------------------------------------------------------------------
+   As cores saem da logo: verde #B9F706 e preto frio #13171A.
+
+   REGRA QUE GOVERNA TUDO AQUI: o verde da marca tem contraste 1.16 sobre o
+   papel creme — invisível como texto. Sobre ele, o preto dá 14.05. Então o
+   verde é cor de PREENCHIMENTO (fundo, barra, bloco) com texto preto em cima,
+   nunca cor de letra. Quando o acento precisa virar texto, entra --acento-texto,
+   uma versão escurecida que passa no AA (4.74).
+   É assim que risografia usa tinta fluorescente, e é o que mantém a interface
+   legível sem trair a marca.
+
+   Guardadas como canais RGB soltos para o Tailwind aplicar opacidade por cima:
+   rgb(var(--tinta-900) / 0.05).
+   =========================================================================== */
+
+:root {
+  /* Papel — fundos e superficies */
+  --papel-50:  252 250 246;   /* cartao, superficie elevada */
+  --papel-100: 245 242 236;   /* fundo da pagina */
+  --papel-200: 236 232 224;   /* faixa, zona secundaria */
+  --papel-300: 221 216 206;   /* reguas e bordas */
+  --papel-400: 193 187 175;   /* perfuracao, borda marcada */
+
+  /* Tinta — o preto da logo (#13171A), frio. Textos e elementos escuros.
+     A rampa foi calculada para que TODO tom do 400 para cima passe no AA
+     (4.5:1) sobre o papel. Os valores "bonitos" originais reprovavam: o
+     cinza de etiqueta dava 2.49, ou seja, rotulo ilegivel para muita gente. */
+  --tinta-400: 109 117 122;   /* 4.5:1  — etiquetas e texto discreto */
+  --tinta-500:  92 101 107;   /* 5.4:1  — texto secundario */
+  --tinta-600:  72  80  86;   /* 7.0:1 */
+  --tinta-700:  51  59  65;
+  --tinta-800:  31  37  41;
+  --tinta-900:  19  23  26;   /* texto principal — mesma tinta da marca */
+
+  /* Acento — o verde da logo (#B9F706). PREENCHIMENTO, nunca texto. */
+  --acento-100: 239 253 206;  /* fundo de selo */
+  --acento-200: 226 251 158;
+  --acento-400: 205 250  84;
+  --acento-500: 185 247   6;  /* #B9F706 — a cor da marca */
+  --acento-600: 165 220   5;  /* hover de preenchimento */
+  --acento-texto:   88 118 2; /* #587602 — 4.74:1 sobre creme, passa AA */
+  --acento-escuro:  77 103 2; /* #4D6702 — 5.83:1, para texto pequeno e foco */
+
+  /* Erro — vermelho de verdade, separado da marca.
+     Antes o acento acumulava "cor da marca" e "cor de erro", o que fazia um
+     botao primario e uma mensagem de falha terem exatamente o mesmo peso. */
+  --erro-100: 250 226 223;
+  --erro-500: 195  53  43;
+  --erro-600: 163  40  31;
+
+  /* Ocre — pendente, aguardando, expira em breve */
+  --ocre-100: 247 235 211;
+  --ocre-500: 176 125  26;
+  --ocre-600: 142  99  18;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-papel-100 text-tinta-900 font-sans antialiased;
+    font-feature-settings: 'kern' 1, 'liga' 1;
+  }
+
+  /* Granulado de papel. Overlay fixo, imperceptivel isolado, mas tira o
+     aspecto de "branco digital chapado" que toda interface gerada tem. */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    pointer-events: none;
+    opacity: 0.032;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23g)'/%3E%3C/svg%3E");
+  }
+
+  h1, h2, h3 {
+    @apply font-display;
+    font-variation-settings: 'SOFT' 0, 'WONK' 1;
+  }
+
+  /* Foco visivel. Usa o verde ESCURO: o verde da marca sobre creme tem 1.16 de
+     contraste e um anel de foco invisivel nao e anel de foco. */
+  :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+    @apply outline-none ring-2 ring-acento-escuro ring-offset-2 ring-offset-papel-100 rounded-sm;
+  }
+
+  ::selection {
+    @apply bg-acento-500 text-tinta-900;
+  }
+}
+
+@layer components {
+  /* -------------------------------------------------------------------------
+     BILHETE — o cartao em formato de ingresso.
+     Os recortes laterais sao feitos com mask: dois gradientes radiais
+     transparentes no centro, combinados com "intersect" para que apenas as
+     duas mordidas sejam removidas. Sem intersect a uniao das camadas daria
+     um retangulo inteiro e nenhum recorte apareceria.
+     Navegador antigo sem mask-composite degrada para um cartao comum.
+     ------------------------------------------------------------------------- */
+  .bilhete {
+    --recorte-r: 13px;
+    --recorte-y: 50%;
+    @apply relative bg-papel-50 rounded-bilhete shadow-papel;
+    -webkit-mask-image:
+      radial-gradient(circle var(--recorte-r) at left var(--recorte-y), transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at right var(--recorte-y), transparent 98%, #000 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle var(--recorte-r) at left var(--recorte-y), transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at right var(--recorte-y), transparent 98%, #000 100%);
+    mask-composite: intersect;
+  }
+
+  /* Variante deitada: as mordidas vao para o topo e a base, alinhadas com a
+     perfuracao vertical. Usada no ingresso em destaque, que separa o corpo do
+     canhoto na horizontal. Ajuste a posicao com --recorte-x. */
+  .bilhete-deitado {
+    --recorte-r: 13px;
+    --recorte-x: 50%;
+    -webkit-mask-image:
+      radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+    mask-composite: intersect;
+  }
+
+  /* Linha pontilhada onde o canhoto se destaca do corpo do ingresso.
+     Escrito em CSS puro: como imagem e tamanho de fundo compartilham o prefixo
+     bg-* no Tailwind, registrar os dois no tema criaria classes colidentes. */
+  .perfuracao {
+    height: 3px;
+    width: 100%;
+    background-image: radial-gradient(circle at center, rgb(var(--papel-400)) 1.6px, transparent 1.7px);
+    background-size: 11px 3px;
+    background-repeat: repeat-x;
+  }
+
+  .perfuracao-vertical {
+    width: 3px;
+    align-self: stretch;
+    background-image: radial-gradient(circle at center, rgb(var(--papel-400)) 1.6px, transparent 1.7px);
+    background-size: 3px 11px;
+    background-repeat: repeat-y;
+  }
+
+  /* Regua fina: separador editorial */
+  .regua {
+    @apply h-px w-full bg-papel-300;
+  }
+
+  /* -------------------------------------------------------------------------
+     ETIQUETA — rotulo em caixa alta bem espacado.
+     Substitui as "pilulas" arredondadas: forma reta, monoespacada, sem raio.
+     ------------------------------------------------------------------------- */
+  .etiqueta {
+    @apply font-mono text-etiqueta uppercase;
+  }
+
+  /* SELO — estado de uma reserva/pagamento. Retangulo com borda, nunca pilula.
+     "Valido" usa o verde da marca preenchido com texto preto: num sistema de
+     ingressos, a cor da marca dizendo "pode entrar" e a semantica certa. */
+  .selo {
+    @apply etiqueta inline-flex items-center gap-1.5 border px-2 py-1;
+  }
+  .selo-neutro    { @apply selo border-papel-400 text-tinta-500 bg-papel-100; }
+  .selo-confirmado{ @apply selo border-acento-600 text-tinta-900 bg-acento-500; }
+  .selo-pendente  { @apply selo border-ocre-500/40 text-ocre-600 bg-ocre-100; }
+  .selo-recusado  { @apply selo border-erro-500/40 text-erro-600 bg-erro-100; }
+
+  /* CARIMBO — a marca de "usado" sobre um ingresso ja validado */
+  .carimbo {
+    @apply etiqueta text-base border-[3px] border-double px-4 py-2 rotate-[-9deg] select-none;
+    letter-spacing: 0.22em;
+  }
+
+  /* -------------------------------------------------------------------------
+     BOTOES — retangulares, com deslocamento tatil no clique.
+     O primario e verde da marca com texto PRETO (14:1). Texto branco sobre
+     esse verde daria 1.24 e seria ilegivel.
+     ------------------------------------------------------------------------- */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
+           transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none;
+  }
+  .btn-principal {
+    @apply btn bg-acento-500 text-tinta-900 hover:bg-acento-600 active:translate-y-px;
+  }
+  .btn-tinta {
+    @apply btn bg-tinta-900 text-papel-50 hover:bg-tinta-800 active:translate-y-px;
+  }
+  .btn-contorno {
+    @apply btn border border-tinta-900 text-tinta-900 hover:bg-tinta-900 hover:text-papel-50 active:translate-y-px;
+  }
+  .btn-fantasma {
+    @apply btn text-tinta-600 hover:text-acento-texto hover:bg-papel-200;
+  }
+  .btn-pequeno {
+    @apply px-3 py-1.5 text-xs;
+  }
+
+  /* -------------------------------------------------------------------------
+     FORMULARIOS — campo com linha inferior marcada, como ficha preenchida a mao.
+     ------------------------------------------------------------------------- */
+  .campo {
+    @apply w-full bg-papel-50 border border-papel-300 border-b-2 border-b-papel-400
+           px-3 py-2.5 text-sm text-tinta-900 placeholder:text-tinta-400
+           focus:border-b-acento-500 focus:bg-papel-50 transition-colors;
+  }
+  .campo-rotulo {
+    @apply etiqueta block text-tinta-500 mb-1.5;
+  }
+  .campo-erro {
+    @apply mt-1.5 text-xs text-erro-600;
+  }
+
+  /* -------------------------------------------------------------------------
+     AVISOS — barra lateral grossa no lugar de fundo colorido chapado.
+     ------------------------------------------------------------------------- */
+  .aviso {
+    @apply flex items-start gap-3 border-l-4 px-4 py-3 text-sm;
+  }
+  .aviso-erro       { @apply aviso border-erro-500 bg-erro-100 text-erro-600; }
+  .aviso-sucesso    { @apply aviso border-acento-500 bg-acento-100 text-tinta-800; }
+  .aviso-informacao { @apply aviso border-ocre-500 bg-ocre-100 text-ocre-600; }
+
+  /* Numero tabular: precos e contadores nao "dancam" ao atualizar */
+  .numero {
+    @apply font-mono;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Link editorial: sublinhado que engrossa no hover */
+  .link {
+    @apply text-tinta-900 underline decoration-papel-400 decoration-2 underline-offset-4
+           hover:decoration-acento-500 transition-colors;
+  }
+
+  /* Marca-texto: o unico jeito honesto de usar o verde da marca junto de texto —
+     como fundo, com a tinta por cima. */
+  .marcado {
+    @apply bg-acento-500 text-tinta-900 px-1.5;
+    box-decoration-break: clone;
+    -webkit-box-decoration-break: clone;
+  }
+}
+
+@layer utilities {
+  /* Corta o texto em N linhas sem plugin externo */
+  .linhas-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .linhas-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

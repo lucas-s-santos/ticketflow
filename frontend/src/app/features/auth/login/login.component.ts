@@ -8,88 +8,101 @@ import { AuthService } from '../auth.service';
   standalone: true,
   imports: [ReactiveFormsModule, RouterLink],
   template: `
-    <div class="min-h-screen bg-gray-50 flex items-center justify-center px-4">
-      <div class="w-full max-w-md bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-1">Entrar</h2>
-        <p class="text-sm text-gray-500 mb-6">Acesse sua conta TicketFlow</p>
+    <div class="max-w-md mx-auto px-6 py-16 md:py-24">
 
-        @if (errorMsg()) {
-          <div class="mb-4 px-4 py-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg">
-            {{ errorMsg() }}
-          </div>
+      <p class="etiqueta text-acento-texto mb-3">Sua conta</p>
+      <h1 class="text-titulo-md font-semibold text-tinta-900 mb-10">Entrar no Canhoto</h1>
+
+      <div class="bilhete p-7 mb-6" style="--recorte-y: 50%">
+        @if (mensagemErro()) {
+          <div class="aviso-erro mb-6">{{ mensagemErro() }}</div>
         }
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+        <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-            <input
-              type="email"
-              formControlName="email"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="voce@email.com"
-            />
+            <label for="email" class="campo-rotulo">E-mail</label>
+            <input id="email" type="email" formControlName="email" autocomplete="email" class="campo" />
             @if (form.controls.email.invalid && form.controls.email.touched) {
-              <p class="mt-1 text-xs text-red-600">E-mail inválido</p>
+              <p class="campo-erro">Informe um e-mail válido</p>
             }
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-            <input
-              type="password"
-              formControlName="password"
-              class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              placeholder="••••••"
-            />
+            <label for="senha" class="campo-rotulo">Senha</label>
+            <input id="senha" type="password" formControlName="password" autocomplete="current-password" class="campo" />
             @if (form.controls.password.invalid && form.controls.password.touched) {
-              <p class="mt-1 text-xs text-red-600">Senha obrigatória</p>
+              <p class="campo-erro">Informe sua senha</p>
             }
           </div>
 
-          <button
-            type="submit"
-            [disabled]="loading()"
-            class="w-full bg-indigo-600 text-white font-semibold py-2.5 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
-          >
-            {{ loading() ? 'Entrando...' : 'Entrar' }}
+          <button type="submit" [disabled]="carregando()" class="btn-principal w-full py-3">
+            {{ carregando() ? 'Entrando…' : 'Entrar' }}
           </button>
         </form>
-
-        <p class="mt-4 text-center text-sm text-gray-500">
-          Não tem conta?
-          <a routerLink="/register" class="text-indigo-600 font-medium hover:underline">Cadastre-se</a>
-        </p>
       </div>
+
+      <!-- Acesso de demonstracao: sem isto, quem avalia o projeto precisa criar
+           uma conta antes de ver qualquer coisa — e a maioria simplesmente sai. -->
+      <div class="border border-dashed border-papel-400 p-5">
+        <p class="etiqueta text-tinta-500 mb-1">Avaliando o projeto?</p>
+        <p class="text-sm text-tinta-600 mb-4">
+          Entre com uma conta pronta, sem cadastro.
+        </p>
+        <div class="flex flex-wrap gap-2">
+          <button type="button" (click)="entrarComoDemo('cliente@demo.com')"
+                  [disabled]="carregando()" class="btn-contorno btn-pequeno">
+            Entrar como cliente
+          </button>
+          <button type="button" (click)="entrarComoDemo('organizador@demo.com')"
+                  [disabled]="carregando()" class="btn-contorno btn-pequeno">
+            Entrar como organizador
+          </button>
+        </div>
+      </div>
+
+      <p class="mt-8 text-center text-sm text-tinta-500">
+        Não tem conta?
+        <a routerLink="/register" class="link font-medium">Criar uma agora</a>
+      </p>
     </div>
   `,
 })
 export class LoginComponent {
   private readonly fb = inject(FormBuilder);
-  private readonly authService = inject(AuthService);
+  private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
 
-  loading = signal(false);
-  errorMsg = signal('');
+  readonly carregando = signal(false);
+  readonly mensagemErro = signal('');
 
-  form = this.fb.group({
+  readonly form = this.fb.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', Validators.required],
   });
 
-  submit(): void {
+  enviar(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    this.loading.set(true);
-    this.errorMsg.set('');
-
     const { email, password } = this.form.getRawValue();
-    this.authService.login({ email: email!, password: password! }).subscribe({
-      next: () => this.router.navigate(['/']),
+    this.autenticar(email!, password!);
+  }
+
+  entrarComoDemo(email: string): void {
+    this.form.patchValue({ email, password: 'demo123' });
+    this.autenticar(email, 'demo123');
+  }
+
+  private autenticar(email: string, senha: string): void {
+    this.carregando.set(true);
+    this.mensagemErro.set('');
+
+    this.auth.login({ email, password: senha }).subscribe({
+      next: () => this.router.navigate(['/events']),
       error: (err) => {
-        this.errorMsg.set(err.error?.message ?? 'E-mail ou senha inválidos');
-        this.loading.set(false);
+        this.mensagemErro.set(err.error?.message ?? 'E-mail ou senha inválidos.');
+        this.carregando.set(false);
       },
     });
   }

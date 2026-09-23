@@ -1,5 +1,5 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe, DecimalPipe } from '@angular/common';
+import { CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { OrganizerService } from '../organizer.service';
 import { OrganizerDashboard } from '../organizer.model';
@@ -7,93 +7,127 @@ import { OrganizerDashboard } from '../organizer.model';
 @Component({
   selector: 'app-organizer-dashboard',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe, RouterLink],
   template: `
-    <div class="max-w-5xl mx-auto px-6 py-10">
-      <div class="flex items-center justify-between mb-6">
-        <h2 class="text-2xl font-bold text-gray-900">Painel do Organizador</h2>
-        <a routerLink="/organizer/validate"
-          class="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
-          Validar ingresso
-        </a>
+    <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
+
+      <div class="flex flex-wrap items-end justify-between gap-4 mb-12">
+        <div>
+          <p class="etiqueta text-acento-texto mb-3">Organizador</p>
+          <h1 class="text-titulo-lg font-semibold text-tinta-900">Painel de vendas</h1>
+        </div>
+        <div class="flex gap-2">
+          <a routerLink="/organizer/validate" class="btn-tinta btn-pequeno">Portaria</a>
+          <a routerLink="/events/new" class="btn-contorno btn-pequeno">+ Criar evento</a>
+        </div>
       </div>
 
-      @if (loading()) {
-        <p class="text-gray-500">Carregando painel...</p>
-      } @else if (error()) {
-        <p class="text-red-600">Erro ao carregar o painel.</p>
-      } @else if (data()) {
-        @if (data(); as d) {
-        <!-- Cartões de totais -->
-        <div class="grid gap-4 sm:grid-cols-3 mb-8">
-          <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-sm text-gray-500">Eventos</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ d.totalEvents }}</p>
+      @if (carregando()) {
+        <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 animate-pulse" aria-hidden="true">
+          @for (vazio of [1, 2, 3]; track vazio) {
+            <div class="bg-papel-50 p-7 h-32"></div>
+          }
+        </div>
+        <p class="sr-only">Carregando painel</p>
+
+      } @else if (erro()) {
+        <div class="aviso-erro">Não foi possível carregar o painel.</div>
+
+      } @else if (dados()) {
+        @if (dados(); as d) {
+
+        <!-- ================= TOTAIS ================= -->
+        <!-- gap-px sobre fundo escuro cria as divisorias, sem bordas duplicadas -->
+        <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 mb-14">
+          <div class="bg-papel-50 p-7">
+            <p class="etiqueta text-tinta-400 mb-3">Eventos</p>
+            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalEvents }}</p>
           </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-sm text-gray-500">Ingressos vendidos</p>
-            <p class="text-3xl font-bold text-gray-900 mt-1">{{ d.totalTicketsSold }}</p>
+          <div class="bg-papel-50 p-7">
+            <p class="etiqueta text-tinta-400 mb-3">Ingressos vendidos</p>
+            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalTicketsSold }}</p>
           </div>
-          <div class="bg-white border border-gray-200 rounded-xl p-5">
-            <p class="text-sm text-gray-500">Receita</p>
-            <p class="text-3xl font-bold text-green-600 mt-1">
+          <div class="bg-papel-50 p-7">
+            <p class="etiqueta text-tinta-400 mb-3">Receita</p>
+            <p class="numero text-titulo-md font-bold text-acento-texto leading-none">
               {{ d.totalRevenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
             </p>
           </div>
         </div>
 
         @if (d.events.length === 0) {
-          <div class="text-center py-16 text-gray-400">
-            <p class="text-lg">Você ainda não criou eventos.</p>
-            <a routerLink="/events/new" class="text-indigo-600 hover:underline mt-2 inline-block">Criar meu primeiro evento</a>
+          <div class="bilhete p-12 text-center max-w-md" style="--recorte-y: 50%">
+            <p class="font-display text-titulo-sm font-semibold text-tinta-900 mb-2">
+              Nenhum evento publicado
+            </p>
+            <p class="text-sm text-tinta-500 mb-7">
+              Crie o primeiro e ele aparece aqui com as vendas em tempo real.
+            </p>
+            <a routerLink="/events/new" class="btn-principal">Criar meu primeiro evento</a>
           </div>
+
         } @else {
-          <div class="space-y-6">
+          <div class="space-y-12">
             @for (ev of d.events; track ev.eventId) {
-              <div class="bg-white border border-gray-200 rounded-xl overflow-hidden">
-                <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+              <section>
+                <div class="flex flex-wrap items-end justify-between gap-4 pb-4 border-b-2 border-tinta-900">
                   <div>
-                    <h3 class="font-semibold text-gray-900">{{ ev.eventName }}</h3>
-                    <p class="text-xs text-gray-500">{{ ev.date | date:'dd/MM/yyyy HH:mm' }}</p>
+                    <h2 class="font-display text-titulo-sm font-semibold text-tinta-900">{{ ev.eventName }}</h2>
+                    <p class="etiqueta text-tinta-400 mt-1.5">
+                      {{ ev.date | date:'dd MMM yyyy · HH:mm':undefined:'pt-BR' | uppercase }}
+                    </p>
                   </div>
                   <div class="text-right">
-                    <p class="text-sm text-gray-500">{{ ev.totalSold }} / {{ ev.totalCapacity }} vendidos</p>
-                    <p class="text-sm font-semibold text-green-600">
+                    <p class="numero text-lg font-bold text-tinta-900">
+                      {{ ev.totalSold }}<span class="text-tinta-400">/{{ ev.totalCapacity }}</span>
+                    </p>
+                    <p class="numero text-sm font-semibold text-acento-texto mt-0.5">
                       {{ ev.revenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                     </p>
                   </div>
                 </div>
-                <table class="w-full text-sm">
-                  <thead class="bg-gray-50 text-gray-600 uppercase text-xs tracking-wider">
-                    <tr>
-                      <th class="px-5 py-2 text-left">Setor</th>
-                      <th class="px-5 py-2 text-right">Vendidos</th>
-                      <th class="px-5 py-2 text-right">Disponíveis</th>
-                      <th class="px-5 py-2 text-left">Ocupação</th>
-                      <th class="px-5 py-2 text-right">Receita</th>
-                    </tr>
-                  </thead>
-                  <tbody class="divide-y divide-gray-100">
-                    @for (s of ev.sectors; track s.sectorName) {
-                      <tr>
-                        <td class="px-5 py-2 font-medium text-gray-900">{{ s.sectorName }}</td>
-                        <td class="px-5 py-2 text-right text-gray-700">{{ s.sold }} / {{ s.capacity }}</td>
-                        <td class="px-5 py-2 text-right text-gray-500">{{ s.available }}</td>
-                        <td class="px-5 py-2">
-                          <div class="w-full bg-gray-100 rounded-full h-2">
-                            <div class="bg-indigo-600 h-2 rounded-full"
-                              [style.width.%]="occupancy(s.sold, s.capacity)"></div>
-                          </div>
-                          <span class="text-xs text-gray-400">{{ occupancy(s.sold, s.capacity) | number:'1.0-0' }}%</span>
-                        </td>
-                        <td class="px-5 py-2 text-right text-gray-700">
-                          {{ s.revenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                        </td>
+
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm min-w-[36rem]">
+                    <thead>
+                      <tr class="border-b border-papel-300">
+                        <th class="etiqueta text-tinta-400 py-3 pr-4 text-left font-normal">Setor</th>
+                        <th class="etiqueta text-tinta-400 py-3 px-4 text-right font-normal">Vendidos</th>
+                        <th class="etiqueta text-tinta-400 py-3 px-4 text-right font-normal">Restam</th>
+                        <th class="etiqueta text-tinta-400 py-3 px-4 text-left font-normal w-40">Ocupação</th>
+                        <th class="etiqueta text-tinta-400 py-3 pl-4 text-right font-normal">Receita</th>
                       </tr>
-                    }
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      @for (s of ev.sectors; track s.sectorName) {
+                        <tr class="border-b border-papel-200">
+                          <td class="py-3.5 pr-4 font-medium text-tinta-900">{{ s.sectorName }}</td>
+                          <td class="py-3.5 px-4 text-right numero text-tinta-700">
+                            {{ s.sold }}<span class="text-tinta-400">/{{ s.capacity }}</span>
+                          </td>
+                          <td class="py-3.5 px-4 text-right numero"
+                              [class]="s.available === 0 ? 'text-erro-600 font-bold' : 'text-tinta-500'">
+                            {{ s.available === 0 ? 'esgotado' : s.available }}
+                          </td>
+                          <td class="py-3.5 px-4">
+                            <div class="flex items-center gap-2.5">
+                              <div class="flex-1 h-1.5 bg-papel-300 overflow-hidden">
+                                <div class="h-full bg-acento-500" [style.width.%]="ocupacao(s.sold, s.capacity)"></div>
+                              </div>
+                              <span class="numero text-xs text-tinta-400 w-9 text-right">
+                                {{ ocupacao(s.sold, s.capacity) | number:'1.0-0' }}%
+                              </span>
+                            </div>
+                          </td>
+                          <td class="py-3.5 pl-4 text-right numero text-tinta-700">
+                            {{ s.revenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </section>
             }
           </div>
         }
@@ -103,20 +137,26 @@ import { OrganizerDashboard } from '../organizer.model';
   `,
 })
 export class DashboardComponent implements OnInit {
-  private readonly organizerService = inject(OrganizerService);
+  private readonly service = inject(OrganizerService);
 
-  data = signal<OrganizerDashboard | null>(null);
-  loading = signal(true);
-  error = signal(false);
+  readonly dados = signal<OrganizerDashboard | null>(null);
+  readonly carregando = signal(true);
+  readonly erro = signal(false);
 
   ngOnInit(): void {
-    this.organizerService.getDashboard().subscribe({
-      next: (d) => { this.data.set(d); this.loading.set(false); },
-      error: () => { this.error.set(true); this.loading.set(false); },
+    this.service.getDashboard().subscribe({
+      next: (d) => {
+        this.dados.set(d);
+        this.carregando.set(false);
+      },
+      error: () => {
+        this.erro.set(true);
+        this.carregando.set(false);
+      },
     });
   }
 
-  occupancy(sold: number, capacity: number): number {
-    return capacity > 0 ? (sold / capacity) * 100 : 0;
+  ocupacao(vendidos: number, capacidade: number): number {
+    return capacidade > 0 ? (vendidos / capacidade) * 100 : 0;
   }
 }
