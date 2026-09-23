@@ -1,29 +1,40 @@
 import { TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { AppComponent } from './app.component';
 
+// O AppComponent é só o shell: navbar + <router-outlet>.
+// A navbar injeta o AuthService, que depende de HttpClient e Router — daí os providers.
 describe('AppComponent', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+      ],
     }).compileComponents();
   });
 
-  it('should create the app', () => {
+  it('deve criar o shell da aplicação', () => {
     const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it(`should have the 'frontend' title`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('frontend');
-  });
-
-  it('should render title', () => {
+  it('deve renderizar o cabeçalho com a marca Canhoto', () => {
     const fixture = TestBed.createComponent(AppComponent);
     fixture.detectChanges();
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('h1')?.textContent).toContain('Hello, frontend');
+    // A marca fica no <header>, ao lado do <nav> — não dentro dele.
+    expect(compiled.querySelector('header')?.textContent).toContain('Canhoto');
+  });
+
+  it('deve conter o router-outlet onde as rotas são injetadas', () => {
+    const fixture = TestBed.createComponent(AppComponent);
+    fixture.detectChanges();
+    const compiled = fixture.nativeElement as HTMLElement;
+    expect(compiled.querySelector('router-outlet')).toBeTruthy();
   });
 });

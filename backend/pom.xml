@@ -12,11 +12,11 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.ticketflow</groupId>
+    <groupId>com.canhoto</groupId>
     <artifactId>backend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>backend</name>
-    <description>TicketFlow Backend</description>
+    <description>Canhoto Backend</description>
 
     <properties>
         <java.version>21</java.version>
@@ -27,6 +27,14 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Actuator: expoe /actuator/health para o health check do Render.
+             Antes o health check batia em /api/events, o que consultava o banco
+             e devolvia a lista inteira de eventos a cada checagem. -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
 
         <!-- JPA + Hibernate: mapeamento objeto-relacional -->
@@ -118,6 +126,7 @@
             <artifactId>spring-security-test</artifactId>
             <scope>test</scope>
         </dependency>
+
     </dependencies>
 
     <build>

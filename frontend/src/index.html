@@ -1,11 +1,38 @@
 <!doctype html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
   <meta charset="utf-8">
-  <title>Frontend</title>
+  <title>Canhoto — Ingressos para eventos</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <meta name="description" content="Canhoto: compre ingressos para shows, teatro e conferências. Reserva garantida, pagamento em segundos e ingresso com QR code no seu celular.">
+  <meta name="theme-color" content="#13171A">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+
+  <!-- Fraunces (títulos), Archivo (interface), Space Mono (códigos e preços).
+       preconnect reduz o atraso da primeira renderização do texto. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+
+  <!-- Open Graph: como o link aparece no WhatsApp, LinkedIn e Slack.
+       ATENÇÃO NO DEPLOY: og:image precisa de URL ABSOLUTA. Facebook e LinkedIn
+       ignoram caminho relativo e o preview sai sem imagem. Troque o valor abaixo
+       por https://<seu-dominio>/og-canhoto.jpg assim que a Vercel der a URL. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Canhoto">
+  <meta property="og:title" content="Canhoto — Ingressos para eventos">
+  <meta property="og:description" content="Reserva garantida, pagamento em segundos e ingresso com QR code no seu celular.">
+  <meta property="og:image" content="/og-canhoto.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Terminal de portaria do Canhoto validando um ingresso, com anel verde aceso.">
+
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Canhoto — Ingressos para eventos">
+  <meta name="twitter:description" content="Reserva garantida, pagamento em segundos e ingresso com QR code no seu celular.">
+  <meta name="twitter:image" content="/og-canhoto.jpg">
 </head>
 <body>
   <app-root></app-root>

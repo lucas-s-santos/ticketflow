@@ -1,19 +1,19 @@
 spring:
   application:
-    name: ticketflow-backend
+    name: canhoto-backend
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/ticketflow
-    username: ticketflow_user
-    password: ticketflow_pass
+    url: jdbc:postgresql://localhost:5432/canhoto
+    username: canhoto_user
+    password: canhoto_pass
     driver-class-name: org.postgresql.Driver
 
   # Conexão com o RabbitMQ (mesmas credenciais do docker-compose.yml)
   rabbitmq:
     host: localhost
     port: 5672
-    username: ticketflow_user
-    password: ticketflow_pass
+    username: canhoto_user
+    password: canhoto_pass
     listener:
       simple:
         retry:
@@ -45,6 +45,17 @@ server:
   # Render (e outras PaaS) injetam a porta via variável PORT; localmente cai em 8080.
   port: ${PORT:8080}
 
+# Actuator: so o endpoint de health, sem detalhes internos para quem nao esta autenticado.
+# E o alvo do health check do Render — barato e nao consulta o banco.
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
+  endpoint:
+    health:
+      show-details: never
+
 springdoc:
   api-docs:
     path: /api-docs
@@ -60,7 +71,7 @@ app:
     jwt:
       # Chave em Base64 com pelo menos 256 bits (32 bytes) para HMAC-SHA256.
       # Em produção, substituir por variável de ambiente: APP_SECURITY_JWT_SECRET_KEY
-      secret-key: "dGlja2V0Zmxvdy1kZXYtc2VjcmV0LWtleS1tdXN0LWJlLWF0LWxlYXN0LTI1Ni1iaXRzLWxvbmc="
+      secret-key: "6bRJZkTCjvyBU/NfKoRZU7pxsEc/kAfuVaTFccP+q9Q="
       expiration-ms: 86400000   # 24 horas em milissegundos
 
   # Gateway de pagamento simulado
@@ -70,16 +81,16 @@ app:
 
   # Webhook do gateway: assinatura HMAC e URL de entrega
   webhook:
-    secret: "ticketflow-webhook-hmac-secret-key-troque-em-producao"
+    secret: "canhoto-webhook-hmac-secret-troque-em-producao"
     url: http://localhost:8080/api/webhooks/payments   # destino do webhook do gateway simulado
 
   # Ingresso: segredo HMAC que assina os tokens do QR code (separado do webhook)
   ticket:
-    secret: "ticketflow-ticket-hmac-secret-troque-em-producao"
+    secret: "canhoto-ticket-hmac-secret-troque-em-producao"
 
 logging:
   level:
-    com.ticketflow: DEBUG
+    com.canhoto: DEBUG
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
   pattern:

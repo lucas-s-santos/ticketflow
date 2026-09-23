@@ -4,18 +4,16 @@ import { Observable, tap, map } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
 import { LoginRequest, RegisterRequest, AuthResponse, StoredUser } from './auth.model';
 
-const TOKEN_KEY = 'ticketflow_token';
-const USER_KEY = 'ticketflow_user';
+const TOKEN_KEY = 'canhoto_token';
+const USER_KEY = 'canhoto_user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly api = inject(ApiService);
   private readonly router = inject(Router);
 
-  // signal(): valor reativo. Quando muda, componentes que o leem atualizam automaticamente.
   readonly currentUser = signal<StoredUser | null>(this.loadUserFromStorage());
 
-  // computed(): derivado de outro signal. Recalculado automaticamente quando currentUser muda.
   readonly isLoggedIn = computed(() => this.currentUser() !== null);
   readonly isOrganizador = computed(() => this.currentUser()?.role === 'ORGANIZADOR');
 

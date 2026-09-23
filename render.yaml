@@ -3,12 +3,12 @@
 # com sync:false (segredos e URLs de Neon/CloudAMQP/Vercel) no painel.
 services:
   - type: web
-    name: ticketflow-api
+    name: canhoto-api
     runtime: docker
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     plan: free
-    healthCheckPath: /api/events
+    healthCheckPath: /actuator/health
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod

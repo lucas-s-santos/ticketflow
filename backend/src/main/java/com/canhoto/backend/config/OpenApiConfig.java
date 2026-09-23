@@ -1,0 +1,32 @@
+package com.canhoto.backend.config;
+
+import io.swagger.v3.oas.models.Components;
+import io.swagger.v3.oas.models.OpenAPI;
+import io.swagger.v3.oas.models.info.Info;
+import io.swagger.v3.oas.models.security.SecurityRequirement;
+import io.swagger.v3.oas.models.security.SecurityScheme;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class OpenApiConfig {
+
+    @Bean
+    public OpenAPI openAPI() {
+        // Adiciona o botão "Authorize" no Swagger UI para inserir o Bearer token.
+        // Após o login, copie o token e cole aqui para testar endpoints protegidos.
+        final String securitySchemeName = "bearerAuth";
+        return new OpenAPI()
+                .info(new Info()
+                        .title("Canhoto API")
+                        .description("Plataforma de venda de ingressos: reserva com lock pessimista, pagamento assíncrono e ingresso assinado para check-in")
+                        .version("v2.0"))
+                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
+                .components(new Components()
+                        .addSecuritySchemes(securitySchemeName, new SecurityScheme()
+                                .name(securitySchemeName)
+                                .type(SecurityScheme.Type.HTTP)
+                                .scheme("bearer")
+                                .bearerFormat("JWT")));
+    }
+}
