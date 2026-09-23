@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s --max-time 25 https://api.github.com/repos/lucas-s-santos/ticketflow/actions/runs?head_sha=__TRACKED_VAR__)",
+      "Bash(python -c ' *)",
+      "Bash(cd \"C:/Users/lucas/OneDrive/Área de Trabalho/PROJETOS/ticketflow/backend\")",
+      "Bash(export JAVA_HOME=\"C:/Program Files/Eclipse Adoptium/jdk-21.0.12.101-hotspot\")",
+      "Bash(./mvnw.cmd -B clean verify)",
+      "Bash(echo \"EXIT=$?\")",
+      "Read(//tmp/**)"
+    ]
+  }
+}

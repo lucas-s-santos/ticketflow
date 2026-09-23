@@ -44,6 +44,9 @@ spring:
 server:
   # Render (e outras PaaS) injetam a porta via variável PORT; localmente cai em 8080.
   port: ${PORT:8080}
+  # Faz o Spring resolver X-Forwarded-For, senão atrás do proxy do Render todos
+  # os clientes chegariam com o mesmo IP e um único atacante bloquearia todo mundo.
+  forward-headers-strategy: framework
 
 # Actuator: so o endpoint de health, sem detalhes internos para quem nao esta autenticado.
 # E o alvo do health check do Render — barato e nao consulta o banco.
@@ -73,6 +76,14 @@ app:
       # Em produção, substituir por variável de ambiente: APP_SECURITY_JWT_SECRET_KEY
       secret-key: "6bRJZkTCjvyBU/NfKoRZU7pxsEc/kAfuVaTFccP+q9Q="
       expiration-ms: 86400000   # 24 horas em milissegundos
+
+    # Teto de tentativas de login/cadastro por origem, numa janela deslizante.
+    # 10 em 5 minutos incomoda quem erra a senha algumas vezes e inviabiliza
+    # varredura automatizada, que precisa de milhares.
+    rate-limit:
+      login:
+        max-attempts: 10
+        window-seconds: 300
 
   # Gateway de pagamento simulado
   payment:

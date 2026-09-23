@@ -16,8 +16,36 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
 
     List<Reservation> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
-    // Usado pelo scheduler de expiração: busca reservas PENDING cujo prazo já passou
+    // Usado pela limpeza dos testes; o scheduler usa a variante com trava abaixo.
     List<Reservation> findByStatusAndExpiresAtBefore(ReservationStatus status, OffsetDateTime now);
+
+    /**
+     * Reserva um lote de reservas vencidas para esta instância processar.
+     *
+     * <p>{@code FOR UPDATE SKIP LOCKED} é o que torna o scheduler seguro com mais
+     * de uma instância: cada uma trava as linhas que pegou e as demais pulam
+     * essas linhas em vez de esperar. Sem isso, duas instâncias liam a mesma
+     * lista e devolviam os assentos ao estoque em dobro — o lock no setor
+     * serializa as escritas, mas não impede o trabalho duplicado.
+     *
+     * <p>{@code ORDER BY ticket_sector_id} não é cosmético: o processamento trava
+     * o setor de cada reserva em seguida, e ordenar por setor faz todas as
+     * instâncias adquirirem esses locks na mesma sequência. Em ordens diferentes,
+     * duas transações poderiam travar uma na outra.
+     *
+     * <p>O {@code LIMIT} limita o lote: a versão anterior carregava todas as
+     * reservas vencidas numa única transação, o que num pico viraria problema
+     * de memória e uma transação longa demais.
+     */
+    @Query(value = """
+            SELECT * FROM reservations
+            WHERE status = 'PENDING'
+              AND expires_at < now()
+            ORDER BY ticket_sector_id, expires_at
+            LIMIT :limite
+            FOR UPDATE SKIP LOCKED
+            """, nativeQuery = true)
+    List<Reservation> travarVencidasParaExpirar(@Param("limite") int limite);
 
     // Guardas de integridade: a FK reservations -> ticket_sectors é RESTRICT, então
     // apagar um setor (ou o evento inteiro) com reservas estouraria no banco.

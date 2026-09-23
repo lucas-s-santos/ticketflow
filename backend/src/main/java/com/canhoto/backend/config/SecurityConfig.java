@@ -3,6 +3,7 @@ package com.canhoto.backend.config;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.canhoto.backend.exception.ErrorResponse;
 import com.canhoto.backend.security.JwtAuthenticationFilter;
+import com.canhoto.backend.security.LoginRateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -33,6 +34,7 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final LoginRateLimitFilter loginRateLimitFilter;
     private final ObjectMapper objectMapper;
 
     // Origens permitidas no CORS, vindas de app.cors.allowed-origins (env var em produção).
@@ -96,6 +98,9 @@ public class SecurityConfig {
 
                 // Adiciona nosso filtro JWT ANTES do filtro padrão de autenticação por usuário/senha.
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+                // Antes do JWT: nao ha por que validar token numa requisicao que
+                // o limite de tentativas ja vai recusar.
+                .addFilterBefore(loginRateLimitFilter, JwtAuthenticationFilter.class)
                 .build();
     }
 
