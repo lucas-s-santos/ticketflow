@@ -1,0 +1,16 @@
+-- V9__enable_unaccent.sql
+-- Busca que ignora acento.
+--
+-- Sem isto, procurar "classico" nao encontra "Clássico" e "sessao" nao encontra
+-- "Sessão" — e digitar sem acento e o comportamento padrao de quem busca no
+-- celular. O unaccent normaliza os dois lados da comparacao.
+--
+-- NAO indexamos a expressao. unaccent() e declarada STABLE, nao IMMUTABLE,
+-- porque depende de um dicionario que pode ser alterado; o Postgres recusa
+-- indice funcional sobre ela. O contorno usual e envolve-la numa funcao
+-- declarada IMMUTABLE na marra, o que e uma meia verdade: se o dicionario
+-- mudar, o indice fica silenciosamente errado. Com o volume deste sistema a
+-- varredura sequencial resolve. Se o catalogo crescer, o caminho e materializar
+-- uma coluna ja normalizada, mantida por trigger, e indexar ela com pg_trgm --
+-- assim o indice depende de um dado real, nao de uma promessa falsa.
+CREATE EXTENSION IF NOT EXISTS unaccent;

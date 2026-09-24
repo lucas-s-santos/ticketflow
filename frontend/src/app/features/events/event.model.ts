@@ -1,3 +1,22 @@
+/** Filtros da listagem publica. Campo ausente = filtro nao aplicado. */
+export interface EventFilters {
+  q?: string;
+  /** ISO 8601 com fuso, ex.: 2026-10-01T00:00:00-03:00 */
+  de?: string;
+  ate?: string;
+  comVagas?: boolean;
+}
+
+/** Envelope de paginacao da API. Espelha o PageResponseDto do backend. */
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  last: boolean;
+}
+
 export interface TicketSectorResponse {
   id: string;
   name: string;

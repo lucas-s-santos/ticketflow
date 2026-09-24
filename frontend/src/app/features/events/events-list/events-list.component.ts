@@ -1,9 +1,14 @@
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { RevelarDirective } from '../../../shared/directives/revelar.directive';
+import { Subject, Subscription, debounceTime } from 'rxjs';
 import { EventService } from '../event.service';
-import { EventResponse } from '../event.model';
+import { EventFilters, EventResponse } from '../event.model';
 import { AuthService } from '../../auth/auth.service';
+
+type Periodo = 'todos' | 'semana' | 'mes';
 
 // Tempo ate assumir que o backend esta hibernando e avisar quem esta esperando.
 // O plano free do Render desliga o servico apos inatividade e o primeiro acesso
@@ -13,7 +18,7 @@ const AVISO_HIBERNACAO_MS = 3000;
 @Component({
   selector: 'app-events-list',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, FormsModule, RevelarDirective],
   template: `
     <div class="max-w-6xl mx-auto px-6 py-12 md:py-16">
 
@@ -27,6 +32,57 @@ const AVISO_HIBERNACAO_MS = 3000;
         @if (auth.isOrganizador()) {
           <a routerLink="/events/new" class="btn-contorno">+ Criar evento</a>
         }
+      </div>
+
+      <!-- ================= BUSCA E FILTROS ================= -->
+      <div class="mb-10">
+        <label for="busca" class="sr-only">Buscar eventos</label>
+        <div class="relative mb-4">
+          <input
+            id="busca"
+            type="search"
+            [ngModel]="termo()"
+            (ngModelChange)="aoDigitar($event)"
+            placeholder="Buscar por nome, cidade ou local"
+            autocomplete="off"
+            class="campo pl-10"
+          />
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-tinta-400"
+               fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="11" cy="11" r="7" />
+            <path stroke-linecap="round" d="m20 20-3.5-3.5" />
+          </svg>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          @for (opcao of periodos; track opcao.valor) {
+            <button type="button" (click)="mudarPeriodo(opcao.valor)"
+                    class="etiqueta border px-3 py-1.5 transition-colors"
+                    [class]="periodo() === opcao.valor
+                      ? 'border-tinta-900 bg-tinta-900 text-papel-50'
+                      : 'border-papel-400 text-tinta-600 hover:border-tinta-900'">
+              {{ opcao.rotulo }}
+            </button>
+          }
+
+          <span class="w-px h-5 bg-papel-300 mx-1" aria-hidden="true"></span>
+
+          <button type="button" (click)="alternarVagas()"
+                  [attr.aria-pressed]="comVagas()"
+                  class="etiqueta border px-3 py-1.5 transition-colors"
+                  [class]="comVagas()
+                    ? 'border-acento-600 bg-acento-500 text-tinta-900'
+                    : 'border-papel-400 text-tinta-600 hover:border-tinta-900'">
+            Com ingressos
+          </button>
+
+          @if (temFiltro()) {
+            <button type="button" (click)="limparFiltros()"
+                    class="etiqueta text-tinta-400 hover:text-erro-600 px-2 py-1.5 transition-colors">
+              Limpar
+            </button>
+          }
+        </div>
       </div>
 
       @if (carregando()) {
@@ -71,10 +127,20 @@ const AVISO_HIBERNACAO_MS = 3000;
 
       } @else if (eventos().length === 0) {
         <div class="bilhete p-12 text-center" style="--recorte-y: 50%">
-          <p class="font-display text-titulo-sm text-tinta-900 mb-2">Nenhum evento em cartaz</p>
-          <p class="text-sm text-tinta-500">
-            Assim que um organizador publicar algo, ele aparece aqui.
-          </p>
+          @if (temFiltro()) {
+            <p class="font-display text-titulo-sm text-tinta-900 mb-2">Nada encontrado</p>
+            <p class="text-sm text-tinta-500 mb-6">
+              Nenhum evento corresponde a essa busca. Tente outro termo ou amplie o período.
+            </p>
+            <button type="button" (click)="limparFiltros()" class="btn-contorno btn-pequeno">
+              Limpar filtros
+            </button>
+          } @else {
+            <p class="font-display text-titulo-sm text-tinta-900 mb-2">Nenhum evento em cartaz</p>
+            <p class="text-sm text-tinta-500">
+              Assim que um organizador publicar algo, ele aparece aqui.
+            </p>
+          }
         </div>
 
       } @else {
@@ -155,8 +221,10 @@ const AVISO_HIBERNACAO_MS = 3000;
 
         <!-- ================= DEMAIS ================= -->
         <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          @for (ev of restantes(); track ev.id) {
-            <a [routerLink]="['/events', ev.id]"
+          @for (ev of restantes(); track ev.id; let i = $index) {
+            <!-- O atraso e limitado a 6 posicoes: escalonar 30 cartoes faria o
+                 ultimo aparecer quase dois segundos depois do primeiro. -->
+            <a appRevelar [atraso]="(i % 6) * 70" [routerLink]="['/events', ev.id]"
                class="bilhete group flex flex-col overflow-hidden hover:shadow-papel-alta
                       hover:-translate-y-0.5 transition-all duration-200"
                style="--recorte-y: calc(100% - 5.5rem)">
@@ -220,6 +288,18 @@ const AVISO_HIBERNACAO_MS = 3000;
             </a>
           }
         </div>
+
+        @if (!ultimaPagina()) {
+          <div class="flex flex-col items-center gap-3 mt-12">
+            <button type="button" (click)="carregarMais()" [disabled]="carregandoMais()"
+                    class="btn-contorno">
+              {{ carregandoMais() ? 'Carregando...' : 'Carregar mais eventos' }}
+            </button>
+            <p class="etiqueta text-tinta-400">
+              {{ eventos().length }} de {{ total() }}
+            </p>
+          </div>
+        }
       }
     </div>
   `,
@@ -239,16 +319,89 @@ export class EventsListComponent implements OnInit, OnDestroy {
   readonly destaque = computed(() => this.eventos()[0]);
   readonly restantes = computed(() => this.eventos().slice(1));
 
+  readonly termo = signal('');
+  readonly periodo = signal<Periodo>('todos');
+  readonly comVagas = signal(false);
+
+  readonly periodos: { valor: Periodo; rotulo: string }[] = [
+    { valor: 'todos', rotulo: 'Qualquer data' },
+    { valor: 'semana', rotulo: 'Próximos 7 dias' },
+    { valor: 'mes', rotulo: 'Próximos 30 dias' },
+  ];
+
+  /** Usado para escolher entre "nada encontrado" e "nenhum evento em cartaz". */
+  readonly temFiltro = computed(
+    () => this.termo().trim() !== '' || this.periodo() !== 'todos' || this.comVagas(),
+  );
+
+  // Digitar dispara uma requisicao por tecla se nao houver represa. O debounce
+  // espera a pessoa parar de escrever antes de consultar a API.
+  private readonly digitacao = new Subject<void>();
+  private inscricaoDigitacao?: Subscription;
+
+  readonly carregandoMais = signal(false);
+  readonly ultimaPagina = signal(true);
+  readonly total = signal(0);
+  private paginaAtual = 0;
+
   readonly esqueletos = [1, 2, 3, 4, 5, 6];
 
   private temporizador?: ReturnType<typeof setTimeout>;
 
   ngOnInit(): void {
     this.carregar();
+    this.inscricaoDigitacao = this.digitacao
+      .pipe(debounceTime(350))
+      .subscribe(() => this.carregar());
   }
 
   ngOnDestroy(): void {
     this.limparTemporizador();
+    this.inscricaoDigitacao?.unsubscribe();
+  }
+
+  aoDigitar(valor: string): void {
+    this.termo.set(valor);
+    this.digitacao.next();
+  }
+
+  mudarPeriodo(valor: Periodo): void {
+    this.periodo.set(valor);
+    this.carregar();
+  }
+
+  alternarVagas(): void {
+    this.comVagas.update((v) => !v);
+    this.carregar();
+  }
+
+  limparFiltros(): void {
+    this.termo.set('');
+    this.periodo.set('todos');
+    this.comVagas.set(false);
+    this.carregar();
+  }
+
+  /**
+   * Traduz o periodo escolhido em limites de data. O inicio e sempre agora:
+   * evento que ja comecou nao interessa a quem esta comprando ingresso.
+   */
+  private filtrosAtuais(): EventFilters {
+    const agora = new Date();
+    let ate: string | undefined;
+
+    if (this.periodo() === 'semana') {
+      ate = new Date(agora.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    } else if (this.periodo() === 'mes') {
+      ate = new Date(agora.getTime() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    }
+
+    return {
+      q: this.termo(),
+      de: this.periodo() === 'todos' ? undefined : agora.toISOString(),
+      ate,
+      comVagas: this.comVagas(),
+    };
   }
 
   carregar(): void {
@@ -259,15 +412,40 @@ export class EventsListComponent implements OnInit, OnDestroy {
     this.limparTemporizador();
     this.temporizador = setTimeout(() => this.hibernando.set(true), AVISO_HIBERNACAO_MS);
 
-    this.service.getEvents().subscribe({
-      next: (dados) => {
-        this.eventos.set(dados);
+    this.paginaAtual = 0;
+    this.service.getEvents(this.filtrosAtuais(), 0).subscribe({
+      next: (pagina) => {
+        this.eventos.set(pagina.content);
+        this.ultimaPagina.set(pagina.last);
+        this.total.set(pagina.totalElements);
         this.finalizar();
       },
       error: () => {
         this.erro.set(true);
         this.finalizar();
       },
+    });
+  }
+
+  /**
+   * Acrescenta a proxima pagina no fim da lista, sem remontar a tela.
+   * Trocar por paginas numeradas faria a pessoa perder o lugar a cada clique.
+   */
+  carregarMais(): void {
+    if (this.carregandoMais() || this.ultimaPagina()) {
+      return;
+    }
+    this.carregandoMais.set(true);
+
+    this.service.getEvents(this.filtrosAtuais(), this.paginaAtual + 1).subscribe({
+      next: (pagina) => {
+        this.paginaAtual = pagina.page;
+        this.eventos.update((atuais) => [...atuais, ...pagina.content]);
+        this.ultimaPagina.set(pagina.last);
+        this.total.set(pagina.totalElements);
+        this.carregandoMais.set(false);
+      },
+      error: () => this.carregandoMais.set(false),
     });
   }
 

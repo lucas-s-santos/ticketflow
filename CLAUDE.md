@@ -4,8 +4,8 @@
 Canhoto é uma plataforma de venda de ingressos com gateway de pagamento simulado.
 
 > O nome vem do pedaço do ingresso que fica com você depois de entrar — que aqui é
-> digital e assinado por HMAC. O pacote Java e o banco ainda usam `canhoto`,
-> nome anterior do projeto; a renomeação profunda está pendente.
+> digital e assinado por HMAC. Pacote Java, banco e containers já usam `canhoto`;
+> falta renomear o repositório no GitHub e a pasta local, ambos ainda `ticketflow`.
 
 - **Backend:** Java 21 + Spring Boot 3.x → pasta `backend/`
 - **Frontend:** Angular 18+ (standalone) + Tailwind CSS → pasta `frontend/`

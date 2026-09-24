@@ -1,6 +1,6 @@
 # 🎟️ Canhoto
 
-<img src="docs/marca/canhoto-portaria-readme.jpg" alt="Terminal de portaria do Canhoto validando um ingresso" width="100%">
+<img src="docs/marca/banner.jpg" alt="Canhoto — ingressos, check-in e controle de acesso em um só lugar" width="100%">
 
 > **Seu acesso, seu momento. Sem colisão.**
 
