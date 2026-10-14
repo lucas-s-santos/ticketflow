@@ -2,6 +2,7 @@ package com.canhoto.backend.service;
 
 import com.canhoto.backend.dto.EventRequestDto;
 import com.canhoto.backend.dto.EventResponseDto;
+import com.canhoto.backend.dto.PageResponseDto;
 import com.canhoto.backend.dto.TicketSectorRequestDto;
 import com.canhoto.backend.dto.TicketSectorResponseDto;
 import com.canhoto.backend.entity.Event;
@@ -10,14 +11,18 @@ import com.canhoto.backend.entity.User;
 import com.canhoto.backend.exception.BusinessRuleException;
 import com.canhoto.backend.exception.ResourceNotFoundException;
 import com.canhoto.backend.repository.EventRepository;
+import com.canhoto.backend.repository.EventSpecifications;
 import com.canhoto.backend.repository.ReservationRepository;
 import com.canhoto.backend.repository.TicketSectorRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -26,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -37,12 +43,28 @@ public class EventService {
     private final TicketSectorRepository ticketSectorRepository;
     private final ReservationRepository reservationRepository;
 
+    /**
+     * Listagem publica paginada.
+     *
+     * <p>Duas consultas, independentemente do tamanho da pagina: uma para os
+     * eventos e uma para os setores de todos eles. A versao anterior devolvia
+     * a tabela inteira e disparava uma consulta de setor por evento.
+     */
     @Transactional(readOnly = true)
-    public List<EventResponseDto> findAll() {
-        return eventRepository.findAllByOrderByDateAsc()
-                .stream()
-                .map(event -> toResponseDto(event, ticketSectorRepository.findByEventId(event.getId())))
-                .toList();
+    public PageResponseDto<EventResponseDto> findAll(
+            String texto, OffsetDateTime de, OffsetDateTime ate, boolean apenasComVagas, Pageable pageable) {
+
+        Page<Event> pagina = eventRepository.findAll(
+                EventSpecifications.comFiltros(texto, de, ate, apenasComVagas), pageable);
+
+        List<UUID> ids = pagina.getContent().stream().map(Event::getId).toList();
+        Map<UUID, List<TicketSector>> setoresPorEvento = ids.isEmpty()
+                ? Map.of()
+                : ticketSectorRepository.findByEventIdIn(ids).stream()
+                        .collect(Collectors.groupingBy(setor -> setor.getEvent().getId()));
+
+        return PageResponseDto.of(pagina,
+                evento -> toResponseDto(evento, setoresPorEvento.getOrDefault(evento.getId(), List.of())));
     }
 
     @Transactional(readOnly = true)

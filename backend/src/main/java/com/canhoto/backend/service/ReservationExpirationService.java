@@ -12,22 +12,31 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
-// Serviço separado do ReservationService para evitar dependência circular.
-// O @Scheduled roda em uma thread própria do Spring Task Executor.
-//
-// LIMITAÇÃO CONHECIDA: com mais de uma instância da aplicação, as duas rodariam este
-// scheduler, leriam a mesma lista de reservas vencidas e devolveriam os assentos duas
-// vezes. O lock no setor serializa as escritas, mas não deduplica o trabalho. Hoje o
-// deploy é de instância única; para escalar, o caminho é ShedLock (lock distribuído)
-// ou trocar a busca por um SELECT ... FOR UPDATE SKIP LOCKED sobre as reservas.
+/**
+ * Devolve ao estoque os assentos de reservas que venceram sem pagamento.
+ *
+ * <p>Vive separado do {@code ReservationService} para não criar dependência
+ * circular entre eles.
+ *
+ * <p>É seguro rodar em várias instâncias ao mesmo tempo: a busca usa
+ * {@code FOR UPDATE SKIP LOCKED}, então cada instância processa um conjunto
+ * disjunto de reservas. Antes, todas liam a mesma lista e devolviam as vagas
+ * em dobro.
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationExpirationService {
+
+    /**
+     * Teto de reservas por execução. Um lote grande demais prenderia centenas de
+     * locks numa transação longa; se houver fila maior que isto, ela drena nas
+     * execuções seguintes, a cada minuto.
+     */
+    private static final int TAMANHO_DO_LOTE = 200;
 
     private final ReservationRepository reservationRepository;
     private final TicketSectorRepository ticketSectorRepository;
@@ -36,27 +45,31 @@ public class ReservationExpirationService {
     @Scheduled(fixedRate = 60_000)
     @Transactional
     public void expirePendingReservations() {
-        List<Reservation> expired = reservationRepository
-                .findByStatusAndExpiresAtBefore(ReservationStatus.PENDING, OffsetDateTime.now());
+        List<Reservation> vencidas = reservationRepository.travarVencidasParaExpirar(TAMANHO_DO_LOTE);
 
-        if (expired.isEmpty()) {
+        if (vencidas.isEmpty()) {
             return;
         }
 
-        log.info("Expirando {} reserva(s) vencida(s)", expired.size());
+        log.info("Expirando {} reserva(s) vencida(s)", vencidas.size());
 
-        for (Reservation reservation : expired) {
-            // Lock pessimista para restaurar vagas de forma segura
-            UUID sectorId = reservation.getTicketSector().getId();
-            TicketSector sector = ticketSectorRepository.findByIdForUpdate(sectorId)
-                    .orElseThrow(() -> new ResourceNotFoundException("Setor não encontrado: " + sectorId));
-            sector.setAvailableSeats(sector.getAvailableSeats() + reservation.getQuantity());
-            ticketSectorRepository.save(sector);
+        for (Reservation reserva : vencidas) {
+            UUID setorId = reserva.getTicketSector().getId();
+            TicketSector setor = ticketSectorRepository.findByIdForUpdate(setorId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Setor não encontrado: " + setorId));
 
-            reservation.setStatus(ReservationStatus.EXPIRED);
-            reservationRepository.save(reservation);
+            setor.setAvailableSeats(setor.getAvailableSeats() + reserva.getQuantity());
+            ticketSectorRepository.save(setor);
+
+            reserva.setStatus(ReservationStatus.EXPIRED);
+            reservationRepository.save(reserva);
+
             log.info("Reserva expirada: id={}, setor={}, vagas_restauradas={}",
-                    reservation.getId(), sector.getId(), reservation.getQuantity());
+                    reserva.getId(), setor.getId(), reserva.getQuantity());
+        }
+
+        if (vencidas.size() == TAMANHO_DO_LOTE) {
+            log.info("Lote cheio — pode haver mais reservas vencidas na próxima execução");
         }
     }
 }

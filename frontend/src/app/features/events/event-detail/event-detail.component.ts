@@ -1,5 +1,6 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
+import { RevelarDirective } from '../../../shared/directives/revelar.directive';
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
 import { EventService } from '../event.service';
 import { EventResponse, TicketSectorResponse } from '../event.model';
@@ -13,7 +14,7 @@ const MAX_INGRESSOS = 10;
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, RevelarDirective],
   template: `
     <div class="max-w-4xl mx-auto px-6 py-12 md:py-16">
 
@@ -85,8 +86,8 @@ const MAX_INGRESSOS = 10;
           <p class="text-sm text-tinta-500">Nenhum setor cadastrado para este evento.</p>
         } @else {
           <div class="space-y-3 mb-10" role="radiogroup" aria-label="Setores disponíveis">
-            @for (setor of ev.sectors; track setor.id) {
-              <button
+            @for (setor of ev.sectors; track setor.id; let i = $index) {
+              <button appRevelar [atraso]="i * 60" [distancia]="8"
                 type="button"
                 role="radio"
                 [attr.aria-checked]="setorId() === setor.id"

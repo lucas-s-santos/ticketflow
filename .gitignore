@@ -48,3 +48,10 @@ secrets/
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Pecas de origem da marca soltas na raiz: pesadas e so servem de insumo.
+# O que vai para o repositorio sao os derivados otimizados em docs/marca/
+# e os ativos que o app carrega em frontend/public/.
+# So a raiz: as barras iniciais impedem que a regra pegue as subpastas.
+/*.mp4
+/*.png

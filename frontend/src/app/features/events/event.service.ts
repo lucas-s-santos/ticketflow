@@ -1,19 +1,38 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { ApiService } from '../../core/services/api.service';
-import { EventResponse, EventRequest } from './event.model';
+import { EventResponse, EventRequest, EventFilters, PageResponse } from './event.model';
 
-// Injectable({ providedIn: 'root' }): o Angular cria uma única instância deste serviço
-// e a disponibiliza em qualquer componente do app sem precisar declará-lo em providers[].
 @Injectable({ providedIn: 'root' })
 export class EventService {
   private readonly api = inject(ApiService);
 
-  // Observable<T>: representa um fluxo de dados assíncrono.
-  // Pense como uma Promise, mas mais poderoso: pode emitir múltiplos valores ao longo do tempo.
-  // O componente "se inscreve" com .subscribe() para receber o resultado quando chegar.
-  getEvents(): Observable<EventResponse[]> {
-    return this.api.get<EventResponse[]>('/events');
+  /**
+   * Listagem paginada com busca e filtros.
+   *
+   * O backend limita o tamanho a 50 e ordena por data; pedir mais do que isso
+   * e silenciosamente reduzido, nao rejeitado. Filtro ausente nao vai na URL:
+   * mandar `q=` vazio faria o backend tratar string vazia como termo de busca.
+   */
+  getEvents(filtros: EventFilters = {}, pagina = 0, tamanho = 12): Observable<PageResponse<EventResponse>> {
+    const params = new URLSearchParams();
+    params.set('page', String(pagina));
+    params.set('size', String(tamanho));
+
+    if (filtros.q?.trim()) {
+      params.set('q', filtros.q.trim());
+    }
+    if (filtros.de) {
+      params.set('de', filtros.de);
+    }
+    if (filtros.ate) {
+      params.set('ate', filtros.ate);
+    }
+    if (filtros.comVagas) {
+      params.set('comVagas', 'true');
+    }
+
+    return this.api.get<PageResponse<EventResponse>>(`/events?${params.toString()}`);
   }
 
   getEventById(id: string): Observable<EventResponse> {

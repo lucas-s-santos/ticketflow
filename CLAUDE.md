@@ -4,8 +4,8 @@
 Canhoto é uma plataforma de venda de ingressos com gateway de pagamento simulado.
 
 > O nome vem do pedaço do ingresso que fica com você depois de entrar — que aqui é
-> digital e assinado por HMAC. O pacote Java e o banco ainda usam `canhoto`,
-> nome anterior do projeto; a renomeação profunda está pendente.
+> digital e assinado por HMAC. Pacote Java, banco e containers já usam `canhoto`;
+> falta renomear o repositório no GitHub e a pasta local, ambos ainda `ticketflow`.
 
 - **Backend:** Java 21 + Spring Boot 3.x → pasta `backend/`
 - **Frontend:** Angular 18+ (standalone) + Tailwind CSS → pasta `frontend/`
@@ -151,3 +151,5 @@ test: adiciona teste de concorrência para reserva de ingressos
 - [x] Fase 5 — Webhooks e Resiliência (HMAC, retry, DLQ)
 - [x] Fase 6 — Pós-compra e Painéis (QR code, dashboard)
 - [x] Fase 7 — Qualidade e Deploy (CI/CD, Render, Vercel, Neon)
+- [ ] Fase 8 — Redesign visual com GSAP e Three.js (em andamento).
+      Estado, decisões e roteiro em `docs/redesign-visual.md` — ler antes de continuar.

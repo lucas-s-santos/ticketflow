@@ -2,19 +2,26 @@ package com.canhoto.backend.controller;
 
 import com.canhoto.backend.dto.EventRequestDto;
 import com.canhoto.backend.dto.EventResponseDto;
+import com.canhoto.backend.dto.PageResponseDto;
 import com.canhoto.backend.entity.User;
 import com.canhoto.backend.repository.UserRepository;
 import com.canhoto.backend.service.EventService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -28,9 +35,25 @@ public class EventController {
     private final UserRepository userRepository;
 
     @GetMapping
-    @Operation(summary = "Lista todos os eventos ordenados por data")
-    public ResponseEntity<List<EventResponseDto>> findAll() {
-        return ResponseEntity.ok(eventService.findAll());
+    @Operation(summary = "Lista eventos paginados, com busca e filtros opcionais")
+    public ResponseEntity<PageResponseDto<EventResponseDto>> findAll(
+            @Parameter(description = "Busca em nome, local e descricao. Ignora acento e caixa.")
+            @RequestParam(required = false) String q,
+
+            @Parameter(description = "Somente eventos a partir desta data/hora")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime de,
+
+            @Parameter(description = "Somente eventos ate esta data/hora")
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) OffsetDateTime ate,
+
+            @Parameter(description = "Esconde eventos totalmente esgotados")
+            @RequestParam(defaultValue = "false") boolean comVagas,
+
+            @PageableDefault(size = 12, sort = "date", direction = Sort.Direction.ASC) Pageable pageable) {
+
+        return ResponseEntity.ok(eventService.findAll(q, de, ate, comVagas, pageable));
     }
 
     @GetMapping("/{id}")

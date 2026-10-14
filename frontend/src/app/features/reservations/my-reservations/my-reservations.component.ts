@@ -2,6 +2,7 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { QRCodeModule } from 'angularx-qrcode';
+import { RevelarDirective } from '../../../shared/directives/revelar.directive';
 import { interval, Subscription, switchMap } from 'rxjs';
 import { ReservationService } from '../reservation.service';
 import { ReservationResponse } from '../reservation.model';
@@ -11,7 +12,7 @@ import { PaymentMethod } from '../../payments/payment.model';
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, QRCodeModule],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, QRCodeModule, RevelarDirective],
   template: `
     <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
 
@@ -143,8 +144,9 @@ import { PaymentMethod } from '../../payments/payment.model';
             </div>
 
             <div class="grid gap-6 md:grid-cols-2">
-              @for (r of confirmadas(); track r.id) {
-                <article class="bilhete flex flex-col relative" style="--recorte-y: calc(100% - 12rem)">
+              @for (r of confirmadas(); track r.id; let i = $index) {
+                <article appRevelar [atraso]="(i % 4) * 80"
+                         class="bilhete flex flex-col relative" style="--recorte-y: calc(100% - 12rem)">
                   <div class="p-6 flex-1">
                     <div class="flex items-start justify-between gap-3 mb-4">
                       @if (r.checkedInAt) {

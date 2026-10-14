@@ -1,13 +1,14 @@
 import { Component, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { RevelarDirective } from '../../../shared/directives/revelar.directive';
 import { OrganizerService } from '../organizer.service';
 import { OrganizerDashboard } from '../organizer.model';
 
 @Component({
   selector: 'app-organizer-dashboard',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe, RouterLink],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe, RouterLink, RevelarDirective],
   template: `
     <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
 
@@ -39,15 +40,15 @@ import { OrganizerDashboard } from '../organizer.model';
         <!-- ================= TOTAIS ================= -->
         <!-- gap-px sobre fundo escuro cria as divisorias, sem bordas duplicadas -->
         <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 mb-14">
-          <div class="bg-papel-50 p-7">
+          <div appRevelar class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Eventos</p>
             <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalEvents }}</p>
           </div>
-          <div class="bg-papel-50 p-7">
+          <div appRevelar [atraso]="80" class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Ingressos vendidos</p>
             <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalTicketsSold }}</p>
           </div>
-          <div class="bg-papel-50 p-7">
+          <div appRevelar [atraso]="160" class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Receita</p>
             <p class="numero text-titulo-md font-bold text-acento-texto leading-none">
               {{ d.totalRevenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
@@ -69,7 +70,7 @@ import { OrganizerDashboard } from '../organizer.model';
         } @else {
           <div class="space-y-12">
             @for (ev of d.events; track ev.eventId) {
-              <section>
+              <section appRevelar>
                 <div class="flex flex-wrap items-end justify-between gap-4 pb-4 border-b-2 border-tinta-900">
                   <div>
                     <h2 class="font-display text-titulo-sm font-semibold text-tinta-900">{{ ev.eventName }}</h2>

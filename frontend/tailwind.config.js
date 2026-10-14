@@ -94,10 +94,27 @@ module.exports = {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        // Entrada do hero: a imagem comeca ampliada e assenta no tamanho certo.
+        // Do 1.0 para cima ela terminaria ampliada, e o deslocamento do scroll
+        // revelaria a borda; partindo de 1.15 ela so encolhe ate caber.
+        'assentar': {
+          '0%': { transform: 'scale(1.15)' },
+          '100%': { transform: 'scale(1)' },
+        },
+        // Marquise: a trilha anda exatamente metade da propria largura, que e
+        // onde a segunda copia da lista assume a posicao da primeira. Qualquer
+        // outro valor faria a emenda aparecer a cada volta.
+        'deslizar': {
+          '0%': { transform: 'translateX(0)' },
+          '100%': { transform: 'translateX(-50%)' },
+        },
       },
 
       animation: {
         'entrar-baixo': 'entrar-baixo 0.4s cubic-bezier(0.22, 1, 0.36, 1) both',
+        'assentar': 'assentar 2.2s cubic-bezier(0.16, 1, 0.3, 1) both',
+        // A duracao real vem do componente, conforme a quantidade de itens.
+        'deslizar': 'deslizar 40s linear infinite',
       },
     },
   },
