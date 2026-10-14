@@ -1,9 +1,14 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ElementRef, NgZone, OnDestroy, OnInit, afterNextRender, inject, signal, viewChild } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { gsap } from 'gsap';
+import { SplitText } from 'gsap/SplitText';
 import { ParalaxeDirective } from '../../shared/directives/paralaxe.directive';
 import { RevelarDirective } from '../../shared/directives/revelar.directive';
 import { MarquiseComponent } from '../../shared/components/marquise/marquise.component';
 import { EventService } from '../events/event.service';
+import { Ingresso3dComponent } from './ingresso-3d/ingresso-3d.component';
+
+gsap.registerPlugin(SplitText);
 
 interface Secao {
   readonly etiqueta: string;
@@ -16,63 +21,54 @@ interface Secao {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, ParalaxeDirective, RevelarDirective, MarquiseComponent],
+  imports: [RouterLink, ParalaxeDirective, RevelarDirective, MarquiseComponent, Ingresso3dComponent],
   template: `
     <!--
       ================= ABERTURA =================
-      Imagem de largura total com o texto por cima. O título continua sendo HTML,
-      não pixel: responde a tamanho de tela, é lido por leitor de tela e conta
-      para busca. Texto embutido em imagem não faz nada disso.
+      O palco escuro com o ingresso girando sob um refletor. O título continua
+      sendo HTML, não pixel: responde a tamanho de tela, é lido por leitor de
+      tela e conta para busca.
     -->
-    <section class="relative -mt-16 pt-16 min-h-[34rem] md:min-h-[46rem] flex items-center overflow-hidden bg-tinta-900">
-      <!--
-        Duas camadas de proposito. O paralaxe escreve transform no elemento que
-        envolve, e o zoom de entrada escreve transform na imagem: numa camada so,
-        um sobrescreveria o outro e um dos dois sumiria.
+    <section #abertura class="relative isolate -mt-16 pt-16 overflow-hidden bg-tinta-900">
+      <div class="luz-palco absolute inset-0 -z-10" aria-hidden="true"></div>
 
-        A imagem tem 125% da altura, recuada 12.5% no topo, para haver folga em
-        cima e embaixo. Sem essa sobra, o deslocamento do scroll revelaria a
-        borda da foto e apareceria uma faixa vazia.
-      -->
-      <div appParalaxe [deslocamento]="-70"
-           class="absolute inset-x-0 -top-[12.5%] h-[125%]">
-        <img src="hero-show.jpg" alt="" fetchpriority="high" decoding="async"
-             class="w-full h-full object-cover object-left animate-assentar" />
-      </div>
+      <div class="max-w-6xl mx-auto px-6 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] items-center
+                  gap-4 lg:gap-0 lg:min-h-[44rem] pt-4 pb-16 lg:py-0">
 
-      <!--
-        Véu escuro. A foto tem refletor verde estourado do lado esquerdo, onde o
-        texto vai: sem isto o branco sobre verde claro cai para perto de 1.5 de
-        contraste e fica ilegível na prática.
-      -->
-      <div class="absolute inset-0 bg-gradient-to-l from-tinta-900 via-tinta-900/80 to-tinta-900/10
-                  lg:to-transparent"
-           aria-hidden="true"></div>
+        <div class="order-2 lg:order-1 max-w-xl relative z-10">
+          <p data-abertura class="etiqueta text-acento-500 mb-5">Ingressos sem sobrevenda</p>
 
-      <div class="absolute inset-0 bg-tinta-900/35 lg:bg-transparent" aria-hidden="true"></div>
-
-      <div class="relative max-w-6xl mx-auto px-6 py-20 w-full">
-        <div class="max-w-xl lg:ml-auto animate-entrar-baixo">
-          <p class="etiqueta text-acento-500 mb-5">Ingressos sem sobrevenda</p>
-
-          <h1 class="text-titulo-xl font-semibold text-papel-50 mb-6">
+          <h1 data-titulo class="text-titulo-xl font-semibold text-papel-50 mb-6">
             O lugar é seu<br />
-            no instante do clique.
+            no instante<br />
+            do clique.
           </h1>
 
-          <p class="text-lg leading-relaxed text-papel-300 mb-9">
+          <p data-abertura class="text-lg leading-relaxed text-papel-300 mb-9">
             A vaga sai do estoque assim que você reserva e fica guardada por quinze
             minutos enquanto você paga. Acabou aquela história de perder o ingresso
             no meio do checkout.
           </p>
 
-          <div class="flex flex-wrap items-center gap-3">
+          <div data-abertura class="flex flex-wrap items-center gap-3">
             <a routerLink="/events" class="btn-principal">Ver eventos em cartaz</a>
             <a href="#como-funciona"
                class="btn border border-papel-50/40 text-papel-50 hover:bg-papel-50 hover:text-tinta-900 active:translate-y-px">
               Como funciona
             </a>
           </div>
+        </div>
+
+        <!--
+          O ingresso sangra para a direita no desktop: maior que a coluna, ele
+          ocupa o palco em vez de caber numa caixa. A sangria cresce com a tela
+          e nunca passa da margem que sobra fora do container de 72rem — senão o
+          ingresso inclinado seria cortado pela borda da janela.
+        -->
+        <div class="order-1 lg:order-2 relative h-[16rem] sm:h-[22rem] lg:h-[40rem] -mx-6 lg:mx-0 lg:-mr-4 xl:-mr-16 2xl:-mr-36">
+          <div class="absolute left-1/2 bottom-[10%] -translate-x-1/2 w-3/5 h-12 rounded-[50%] bg-acento-500/20 blur-3xl"
+               aria-hidden="true"></div>
+          <app-ingresso-3d class="absolute inset-0" />
         </div>
       </div>
     </section>
@@ -164,12 +160,60 @@ interface Secao {
     </section>
   `,
 })
-export class HomeComponent implements OnInit {
+export class HomeComponent implements OnInit, OnDestroy {
 
   private readonly eventos = inject(EventService);
+  private readonly zona = inject(NgZone);
+  private readonly abertura = viewChild.required<ElementRef<HTMLElement>>('abertura');
 
   /** Nomes dos proximos eventos, para a marquise. */
   readonly emCartaz = signal<string[]>([]);
+
+  private animacao?: gsap.Context;
+  private destruido = false;
+
+  constructor() {
+    // Fora da zona: o ticker do GSAP e um loop de requestAnimationFrame, e
+    // dentro dela cada quadro dispararia deteccao de mudancas na aplicacao.
+    afterNextRender(() => {
+      this.zona.runOutsideAngular(() => void this.animarAbertura());
+    });
+  }
+
+  ngOnDestroy(): void {
+    this.destruido = true;
+    this.animacao?.revert();
+  }
+
+  /**
+   * O unico momento orquestrado da pagina: o titulo sobe linha a linha por
+   * tras de uma mascara enquanto o ingresso chega girando. O resto da home
+   * fica quieto de proposito — movimento em toda secao vira ruido.
+   */
+  private async animarAbertura(): Promise<void> {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return;
+    }
+    const raiz = this.abertura().nativeElement;
+    // Esconde antes da primeira pintura e so revela com as fontes prontas:
+    // o SplitText mede as linhas, e medir com a fonte reserva quebraria o
+    // titulo no lugar errado quando a Fraunces chegasse.
+    gsap.set(raiz.querySelectorAll('[data-titulo], [data-abertura]'), { autoAlpha: 0 });
+    await Promise.race([document.fonts.ready, new Promise((r) => setTimeout(r, 1200))]);
+    if (this.destruido) return;
+
+    this.animacao = gsap.context(() => {
+      const titulo = SplitText.create('[data-titulo]', { type: 'lines', mask: 'lines' });
+      gsap.set('[data-titulo]', { autoAlpha: 1 });
+
+      gsap.timeline({ defaults: { ease: 'expo.out' } })
+        .from(titulo.lines, { yPercent: 110, duration: 1.2, stagger: 0.1 }, 0.15)
+        .fromTo('[data-abertura]', { y: 14, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1, stagger: 0.08 }, 0.35)
+        // Desfaz a divisao no fim: devolve o h1 original ao DOM, que volta a
+        // quebrar linha sozinho se a janela mudar de tamanho.
+        .add(() => titulo.revert());
+    }, raiz);
+  }
 
   ngOnInit(): void {
     // Falha silenciosa de proposito: a marquise e enfeite. Se a API estiver

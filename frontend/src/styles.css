@@ -156,6 +156,39 @@
     background-repeat: repeat-y;
   }
 
+  /* -------------------------------------------------------------------------
+     LUZ DE PALCO — o fundo do hero. Um refletor verde atrás do ingresso e três
+     feixes descendo do alto, como luz de show atravessando fumaça.
+     O centro da luz acompanha o ingresso: em cima no celular, à direita no desktop.
+     ------------------------------------------------------------------------- */
+  .luz-palco {
+    --luz-x: 50%;
+    --luz-y: 24%;
+    background:
+      radial-gradient(ellipse 55% 32% at var(--luz-x) var(--luz-y), rgb(var(--acento-500) / 0.16), transparent 70%),
+      radial-gradient(ellipse 90% 60% at var(--luz-x) -10%, rgb(var(--papel-50) / 0.06), transparent 70%),
+      linear-gradient(to bottom, rgb(var(--tinta-900)), rgb(var(--tinta-800)));
+  }
+  .luz-palco::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: conic-gradient(from 152deg at var(--luz-x) -12%,
+      transparent 0deg 14deg,
+      rgb(var(--acento-500) / 0.08) 18deg, transparent 23deg 30deg,
+      rgb(var(--papel-50) / 0.05) 34deg, transparent 39deg 45deg,
+      rgb(var(--acento-500) / 0.06) 48deg, transparent 53deg);
+    filter: blur(14px);
+    -webkit-mask-image: linear-gradient(to bottom, #000 20%, transparent 85%);
+    mask-image: linear-gradient(to bottom, #000 20%, transparent 85%);
+  }
+  @media (min-width: 1024px) {
+    .luz-palco {
+      --luz-x: 72%;
+      --luz-y: 48%;
+    }
+  }
+
   /* Regua fina: separador editorial */
   .regua {
     @apply h-px w-full bg-papel-300;
