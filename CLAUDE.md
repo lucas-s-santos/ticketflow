@@ -151,3 +151,5 @@ test: adiciona teste de concorrência para reserva de ingressos
 - [x] Fase 5 — Webhooks e Resiliência (HMAC, retry, DLQ)
 - [x] Fase 6 — Pós-compra e Painéis (QR code, dashboard)
 - [x] Fase 7 — Qualidade e Deploy (CI/CD, Render, Vercel, Neon)
+- [ ] Fase 8 — Redesign visual com GSAP e Three.js (em andamento).
+      Estado, decisões e roteiro em `docs/redesign-visual.md` — ler antes de continuar.
