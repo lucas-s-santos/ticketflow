@@ -1,8 +1,8 @@
 # Redesign visual do Canhoto — estado e próximos passos
 
-> Documento de continuação. Escrito em 2026-10-14 para retomar o trabalho em
-> outro computador, por uma pessoa ou por uma sessão nova do Claude Code.
-> Leia a seção 1 e a 5 antes de mexer em qualquer coisa.
+> Documento de continuação. Escrito em 2026-10-14 e atualizado em 2026-10-15,
+> para retomar o trabalho em outro computador, por uma pessoa ou por uma sessão
+> nova do Claude Code. Leia a seção 1 e a 5 antes de mexer em qualquer coisa.
 
 Objetivo: dar movimento e presença à identidade que o Canhoto já tem — papel
 creme, tinta preta, verde `#B9F706`, Fraunces + Archivo + Space Mono, cartões
@@ -15,8 +15,10 @@ inspora (seção 4).
 ## 1. Onde paramos
 
 - **Branch:** `feature/canhoto-rebrand-e-correcoes` (já no GitHub).
-- **Feito:** ingresso 3D girando no hero da home (seção 3).
-- **Próximo:** item 1 do roteiro — "Como funciona" com cards empilhando (seção 6).
+- **Feito:** ingresso 3D no hero (seção 3) e os itens 1, 2 e 3 do roteiro (seção 6).
+  De carona, um bug crítico de pagamento no backend (seção 8).
+- **Próximo:** item 4 do roteiro — lista de eventos. Pendente do item 3: trocar de
+  ingresso arrastando para o lado no celular.
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
 
 ### Retomar em outro computador
@@ -42,7 +44,9 @@ Contas de demonstração: `organizador@demo.com` e `cliente@demo.com`, senha `de
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| Backend cai com `ClassFormatError: Invalid method Code length 0` | `.class` corrompido em `backend/target/` (extensão Java do VS Code ou OneDrive escrevendo na mesma pasta) | `./mvnw clean spring-boot:run` |
+| Backend cai com `ClassFormatError: Invalid method Code length 0`, ou teste/contexto falha com `java.lang.Error: Unresolved compilation problems` | A extensão Java do VS Code (compilador do Eclipse) grava `.class` na mesma `backend/target/classes` do Maven — às vezes de um arquivo no meio da edição — e o Maven reaproveita | **Sempre** `./mvnw clean ...`; e pare o `spring-boot:run` antes de rodar testes (os dois compilam na mesma pasta) |
+| `clean` falha com `Failed to delete ...\target\...` | Algum terminal está com a pasta `target` aberta (no Windows, pasta em uso fica travada) | sair da pasta e repetir |
+| Login devolve 429 depois de vários testes | Limite de 10 tentativas a cada 5 min por origem (é o app funcionando) | esperar a janela, ou nos scripts logar uma vez e reaproveitar o token (seção 7) |
 | `release 21 not supported` no Maven | `java` do PATH é antigo | definir `JAVA_HOME` para o JDK 21 |
 | `docker info` falha com `dockerDesktopLinuxEngine` | Docker Desktop fechado | abrir o Docker Desktop e esperar ~30s |
 | `npm install` avisa `allow-scripts` | npm novo bloqueia scripts de instalação | inofensivo hoje; se o `ng serve` reclamar do esbuild, `npm approve-scripts esbuild` |
@@ -151,24 +155,23 @@ Os testes foram em Chrome headless com renderização por software.
 
 ## 6. Roteiro (em ordem recomendada)
 
-### 1. Home — "Como funciona" empilhando  ← começar aqui
-- **Ref:** skiper16 (Card stack scroll) + skiper19 (SVG follow scroll).
-- **Onde:** seção `#como-funciona` em `home.component.ts`.
-- **Ideia:** os 3 passos (`.bilhete`) ficam `position: sticky` e se empilham como ingressos à medida que a pessoa rola; o de baixo encolhe levemente (`scale` 0.94, escurece). Uma linha de perfuração (SVG pontilhado) se desenha ligando os passos, com `ScrollTrigger` + `scrub` animando `stroke-dashoffset` (ou `DrawSVGPlugin`).
-- **Cuidado:** no celular, empilhar pode virar só lista — testar altura. Reduced motion: lista normal.
+### 1. Home — "Como funciona" empilhando  ✅ feito (2026-10-15)
+- **Onde:** `features/home/como-funciona/como-funciona.component.ts` + `.bilhete-passo` em `styles.css`.
+- **Como ficou:** os 3 passos são ingressos deitados (em pé no celular) que grudam no topo um sobre o outro. O empilhamento é **CSS puro** (`sticky` com topo crescente via `--i`); o script só faz o de baixo encolher e escurecer enquanto o próximo o cobre, e enche de verde um trilho de perfuração no desktop marcando o passo atual.
+- **Armadilhas:** (1) ScrollTrigger mede errado a posição de elemento `sticky` — as contas são feitas à mão, relativas à janela, com a posição natural somando alturas. (2) Posições guardadas em px quebram quando a marquise aparece depois da API e empurra a página — por isso tudo é recalculado por quadro a partir de um único `getBoundingClientRect`. (3) O efeito só começa quando o próximo cartão **encosta** no de baixo, senão ele escurece antes de ser coberto.
 
-### 2. Home — revelações e a seção "O canhoto"
-- **Ref:** skiper32/71 (Image reveal), reactbits Decrypted Text.
-- **Onde:** seções `secoes` em `home.component.ts`; pode substituir `RevelarDirective` nessas imagens.
-- **Ideia:** a foto entra por máscara `clip-path: inset(100% 0 0 0)` → `inset(0)` com `power3.inOut`. Na seção "O canhoto", um código HMAC de exemplo (`a7f3 9c2e 41bd…`) embaralha caracteres e assenta — mostra que o código é assinado.
+### 2. Home — revelação da foto e a seção "O canhoto"  ✅ feito (2026-10-15)
+- **Onde:** `shared/directives/revelar-mascara.directive.ts` e `features/home/assinatura-demo/assinatura-demo.component.ts`.
+- **Como ficou:** a foto abre por `clip-path` enquanto assenta de 1.18 para 1. Ao lado, em vez de texto embaralhando por enfeite, uma **demonstração de verdade**: o botão "Trocar um caractere" altera o id da reserva, a assinatura é recalculada com **HMAC-SHA256 real** (Web Crypto), embaralha com o `ScrambleTextPlugin` e o selo vai de "Válido" para "Assinatura não confere". A chave é só da demo (a real fica no backend).
+- **Armadilha importante:** o Chrome aplica `clip-path` no cálculo do `IntersectionObserver`. Com a moldura totalmente recortada, o observador **nunca dispara** — e o `loading="lazy"` da imagem (mesmo mecanismo) **nunca baixa a foto**. A diretiva mede por `getBoundingClientRect` na rolagem e força `loading="eager"`. Vale para qualquer revelação futura por `clip-path`.
 
-### 3. Meus ingressos como carteira
-- **Ref:** skiper21 (Family wallet) + skiper48 (Card swipe carousel).
-- **Onde:** `features/reservations/my-reservations/my-reservations.component.ts`.
-- **Ideia:** ingressos empilhados como no Apple Wallet; tocar abre o ingresso com QR (transição com `Flip` do GSAP). No celular, arrastar para o lado troca de ingresso (`Draggable` + `InertiaPlugin`).
-- **Cuidado:** é a tela mais funcional do app — QR tem que abrir rápido, sem animação longa no caminho.
+### 3. Meus ingressos como carteira  ✅ feito (2026-10-15) — falta o arraste no celular
+- **Onde:** `features/reservations/my-reservations/my-reservations.component.ts` + `.sombra-maco` em `styles.css`.
+- **Como ficou:** o primeiro ingresso **válido** fica aberto, com o QR à vista (na portaria, zero toques). Os outros formam um maço de cabeçalhos com sombra para cima; os usados vão para o fim, esmaecidos. Tocar num cartão do maço o traz para a frente com **`Flip`** (ele atravessa e abre; o anterior fecha). No desktop é **uma lista só em grid de duas colunas** — aberto fixo à esquerda, maço à direita —, o que deixa o Flip mover o cartão entre as colunas sem duplicar DOM. Foco vai para o ingresso aberto; o canhoto dos cartões do maço é `inert`.
+- **Armadilhas:** (1) referência de template `#carteira` com o mesmo nome do `computed` `carteira` → "not callable"; a referência virou `#maco`. (2) `filter: drop-shadow` em 14 cartões pesava na animação → `box-shadow`, e por isso só o aberto usa `.bilhete` (a máscara cortaria a sombra). (3) Nome de classe com `/` ou `[]` não funciona em `[class.xxx]` do Angular — crie uma classe nomeada no `styles.css`.
+- **Pendente:** no celular, arrastar o ingresso aberto para o lado trocaria para o próximo (`Draggable` + `InertiaPlugin`). Ficou de fora para não atrasar o resto.
 
-### 4. Lista de eventos
+### 4. Lista de eventos  ← próximo
 - **Ref:** skiper35 (Hover expand); adaptação do skiper6 (imagem seguindo o cursor).
 - **Onde:** `features/events/events-list/events-list.component.ts`.
 - **Ideia:** no desktop, cards que expandem a foto no hover (só com mouse). Alternativa editorial: lista de nomes de eventos em Fraunces grande, com a foto do evento flutuando junto ao cursor (`gsap.quickTo`).
@@ -245,5 +248,62 @@ Para testar movimento reduzido:
 `await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }])`
 antes do `goto`.
 
+**Telas logadas** (carteira, painel): não preencha o formulário de login a cada
+execução — o limite de 10 logins em 5 min derruba os testes. Faça **um** login
+pela API, guarde a resposta num `sessao.json` e injete antes do Angular subir:
+
+```js
+await page.evaluateOnNewDocument((s) => {
+  localStorage.setItem('canhoto_token', s.token);
+  localStorage.setItem('canhoto_user', JSON.stringify({ name: s.name, email: s.email, role: s.role }));
+}, sessao);
+```
+
+**Peculiaridades do Chrome headless** (custaram tempo, não são bugs do app):
+
+- `window.scrollTo` sozinho às vezes **não dispara evento de scroll** até o próximo
+  quadro ser desenhado. Role em passos aguardando `requestAnimationFrame`, ou use
+  `page.mouse.wheel`.
+- Medir uma animação com um laço de `requestAnimationFrame` dentro do
+  `page.evaluate` mostra "quadros travados" que não existem. Para saber se algo
+  pesa de verdade, grave um trace (`page.tracing.start` com a categoria
+  `devtools.timeline`) e some `Layout`, `Paint`, `EventDispatch`.
+- A primeira chamada à API depois de reiniciar o backend demora segundos (JVM
+  aquecendo + log de SQL em DEBUG). Use `waitForSelector` com folga, não `sleep` fixo.
+
+**Dados de teste:** a conta `cliente@demo.com` não tem reservas no seed. Para ver
+a carteira cheia, reserve e pague pela API (`POST /reservations`, depois
+`POST /payments` com header `Idempotency-Key`), e faça check-in num deles como
+organizador (`POST /tickets/validate`) para ver o estado "Utilizado".
+
 Antes de subir qualquer etapa: `npx ng build` em `frontend/` precisa passar sem
 erro e sem estourar o orçamento.
+
+---
+
+## 8. Corrigido de carona: pagamento preso em "processando"
+
+Ao criar dados de teste para a carteira, 2 de cada 3 pagamentos ficavam em
+`PROCESSING` para sempre — a pessoa pagava e a reserva expirava. Causa: o
+`PaymentService.checkout` publicava a mensagem no RabbitMQ **dentro** da
+transação; o consumidor (outra conexão) às vezes procurava o pagamento antes do
+commit, não achava e descartava a mensagem.
+
+Agora a publicação acontece em `afterCommit` (`TransactionSynchronization`). O
+teste `PaymentPublishAfterCommitTest` falha no código antigo e passa no novo;
+a suíte inteira passa (35 testes). Depois da correção: 6 de 6 checkouts seguidos
+aprovados.
+
+- **Limite que sobrou:** se a aplicação cair entre o commit e o envio, a mensagem
+  se perde. Fechar essa janela pede um outbox transacional (tabela de mensagens
+  pendentes + job que publica). Não é urgente para um projeto de portfólio, mas é
+  a próxima evolução natural.
+- **Também corrigido:** a limpeza do `ReservationConcurrencyTest` apagava *toda*
+  reserva pendente do banco, não só as do teste. Os testes rodam no mesmo Postgres
+  do docker compose, então rodar a suíte apagava reservas de quem usava o app.
+- **Ainda nos dados locais** (só no banco do computador de casa, não no repositório):
+  duas reservas do `cliente@demo.com` criadas antes da correção têm pagamento preso
+  em `PROCESSING` — já expiraram sozinhas e aparecem no histórico. Há também dois
+  pagamentos de 2026-09-24 em `PROCESSING` com reserva `CONFIRMED`: sobras de testes
+  com uma versão antiga do código. O webhook atual atualiza pagamento e reserva na
+  mesma transação, então isso não se repete.
