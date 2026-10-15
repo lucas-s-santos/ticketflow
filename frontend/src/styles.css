@@ -328,6 +328,37 @@
   }
 }
 
+/* ===========================================================================
+   TRANSIÇÃO ENTRE PÁGINAS (View Transitions, ligadas em app.config.ts)
+   O resto da página troca num crossfade curto; a capa do evento clicado tem
+   nome próprio e viaja da lista até o banner do detalhe.
+   =========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+::view-transition-group(capa-evento) {
+  animation-duration: 480ms;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+/* A capa muda de proporção (cartão → banner). Sem isto, o navegador estica a
+   foto durante a viagem em vez de recortá-la. */
+::view-transition-old(capa-evento),
+::view-transition-new(capa-evento) {
+  height: 100%;
+  object-fit: cover;
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.01ms !important;

@@ -1,5 +1,6 @@
 import {
-  ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, computed, inject, signal, viewChild,
+  ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, afterNextRender, computed, inject, signal,
+  viewChild,
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
@@ -192,6 +193,7 @@ gsap.registerPlugin(Flip);
                   <article data-cartao
                            class="relative overflow-hidden bg-papel-50 rounded-bilhete transition-opacity duration-200"
                            [class.bilhete]="frente"
+                           [class.touch-pan-y]="frente"
                            [class.sombra-maco]="!frente"
                            [class.h-20]="!frente"
                            [class.opacity-60]="!frente && r.checkedInAt"
@@ -253,6 +255,11 @@ gsap.registerPlugin(Flip);
                       </div>
                     }
                   </article>
+                  @if (frente && carteira().length > 1) {
+                    <p class="lg:hidden etiqueta text-tinta-400 text-center mt-3" aria-hidden="true">
+                      Arraste para o lado para trocar de ingresso
+                    </p>
+                  }
                 </li>
               }
             </ol>
@@ -314,7 +321,9 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   );
 
   // ---------------------------------------------------------------- carteira
+  private readonly host = inject(ElementRef<HTMLElement>);
   private readonly zona = inject(NgZone);
+  private desligarArraste?: () => void;
   private readonly detector = inject(ChangeDetectorRef);
   private readonly listaCarteira = viewChild<ElementRef<HTMLElement>>('maco');
   private readonly reduzido = typeof window !== 'undefined'
@@ -345,9 +354,124 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     this.relogio = interval(1000).subscribe(() => this.agora.set(Date.now()));
   }
 
+  constructor() {
+    afterNextRender(() => {
+      this.zona.runOutsideAngular(() => this.ligarArraste());
+    });
+  }
+
   ngOnDestroy(): void {
     this.relogio?.unsubscribe();
     this.cobranca?.unsubscribe();
+    this.desligarArraste?.();
+  }
+
+  /**
+   * No toque, arrastar o ingresso aberto para o lado troca para o vizinho:
+   * para a esquerda vai ao próximo, para a direita volta ao anterior.
+   *
+   * <p>Delegado na raiz do componente porque a carteira só aparece depois que
+   * a API responde, e o ingresso da frente muda a cada troca. Mouse fica de
+   * fora: no desktop o maço está ao lado e um clique resolve.
+   */
+  private ligarArraste(): void {
+    const raiz = this.host.nativeElement as HTMLElement;
+    let cartao: HTMLElement | null = null;
+    let ponteiro = -1;
+    let x0 = 0;
+    let y0 = 0;
+    let xAnterior = 0;
+    let tAnterior = 0;
+    let velocidade = 0; // px por ms
+    let horizontal = false;
+
+    const aoPressionar = (e: PointerEvent) => {
+      if (cartao || e.pointerType === 'mouse' || this.carteira().length < 2) return;
+      const alvo = (e.target as HTMLElement).closest<HTMLElement>('[data-frente]');
+      if (!alvo) return;
+      cartao = alvo;
+      ponteiro = e.pointerId;
+      x0 = xAnterior = e.clientX;
+      y0 = e.clientY;
+      tAnterior = performance.now();
+      velocidade = 0;
+      horizontal = false;
+      gsap.killTweensOf(alvo);
+    };
+
+    const aoMover = (e: PointerEvent) => {
+      if (!cartao || e.pointerId !== ponteiro) return;
+      const dx = e.clientX - x0;
+      if (!horizontal) {
+        // Só vira arraste depois de andar mais para o lado do que para cima ou
+        // para baixo: o mesmo dedo também rola a página.
+        if (Math.abs(dx) < 8 || Math.abs(dx) < Math.abs(e.clientY - y0)) return;
+        horizontal = true;
+        cartao.setPointerCapture(ponteiro);
+      }
+      const agora = performance.now();
+      velocidade = (e.clientX - xAnterior) / Math.max(agora - tAnterior, 1);
+      xAnterior = e.clientX;
+      tAnterior = agora;
+      gsap.set(cartao, { x: dx, rotation: dx * 0.03 });
+    };
+
+    const aoSoltar = (e: PointerEvent) => {
+      if (!cartao || e.pointerId !== ponteiro) return;
+      const alvo = cartao;
+      cartao = null;
+      ponteiro = -1;
+      if (!horizontal) return;
+
+      const dx = Number(gsap.getProperty(alvo, 'x')) || 0;
+      const sentido = Math.sign(dx || velocidade) || 1;
+      // Um peteleco rápido basta; devagar, precisa passar de um terço da largura.
+      const trocou = e.type !== 'pointercancel'
+        && (Math.abs(dx) > alvo.offsetWidth / 3 || Math.abs(velocidade) > 0.35);
+
+      if (!trocou) {
+        gsap.to(alvo, { x: 0, rotation: 0, duration: 0.45, ease: 'back.out(1.6)' });
+        return;
+      }
+      gsap.to(alvo, {
+        x: sentido * alvo.offsetWidth * 1.15,
+        rotation: sentido * 10,
+        opacity: 0,
+        duration: 0.22,
+        ease: 'power2.out',
+        onComplete: () => {
+          gsap.set(alvo, { clearProps: 'transform,opacity' });
+          this.zona.run(() => this.irParaVizinho(sentido < 0 ? 1 : -1));
+          const novo = raiz.querySelector<HTMLElement>('[data-frente]');
+          // O novo entra pelo lado oposto ao que o anterior saiu.
+          if (novo && !this.reduzido) {
+            gsap.from(novo, { x: -sentido * 48, opacity: 0, duration: 0.3, ease: 'power3.out' });
+          }
+        },
+      });
+    };
+
+    raiz.addEventListener('pointerdown', aoPressionar);
+    raiz.addEventListener('pointermove', aoMover);
+    raiz.addEventListener('pointerup', aoSoltar);
+    raiz.addEventListener('pointercancel', aoSoltar);
+    this.desligarArraste = () => {
+      raiz.removeEventListener('pointerdown', aoPressionar);
+      raiz.removeEventListener('pointermove', aoMover);
+      raiz.removeEventListener('pointerup', aoSoltar);
+      raiz.removeEventListener('pointercancel', aoSoltar);
+    };
+  }
+
+  /** Troca o ingresso da frente pelo vizinho na ordem original, dando a volta nas pontas. */
+  private irParaVizinho(passo: number): void {
+    const lista = this.confirmadas();
+    const atual = lista.findIndex((r) => r.id === this.frenteId());
+    const proximo = lista[(atual + passo + lista.length) % lista.length];
+    if (!proximo) return;
+    this.escolhidoId.set(proximo.id);
+    this.detector.detectChanges();
+    this.listaCarteira()?.nativeElement.querySelector<HTMLElement>('[data-frente]')?.focus({ preventScroll: true });
   }
 
   // Quanto falta para a reserva expirar, em mm:ss, mais o percentual da janela

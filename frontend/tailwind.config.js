@@ -8,6 +8,11 @@ const cor = (nome) => `rgb(var(--${nome}) / <alpha-value>)`;
 
 module.exports = {
   content: ["./src/**/*.{html,ts}"],
+  future: {
+    // hover: só onde existe mouse. Em tela de toque o "hover" dispara no toque e
+    // fica preso até a pessoa tocar em outro lugar.
+    hoverOnlyWhenSupported: true,
+  },
   theme: {
     extend: {
       colors: {

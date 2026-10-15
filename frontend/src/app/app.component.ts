@@ -12,7 +12,10 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
     <div class="min-h-screen flex flex-col bg-papel-100">
       <app-navbar />
 
-      <main class="flex-1">
+      <!-- overflow-x: clip corta a sobra lateral das fotos de ponta a ponta
+           (100vw inclui a barra de rolagem) sem criar contêiner de rolagem —
+           com overflow: hidden, os elementos sticky das páginas deixariam de grudar. -->
+      <main class="flex-1 overflow-x-clip">
         <router-outlet />
       </main>
 
