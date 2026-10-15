@@ -1,18 +1,23 @@
-import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
-import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
+import {
+  ChangeDetectorRef, Component, ElementRef, NgZone, OnDestroy, OnInit, computed, inject, signal, viewChild,
+} from '@angular/core';
+import { CurrencyPipe, DatePipe, NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { QRCodeModule } from 'angularx-qrcode';
-import { RevelarDirective } from '../../../shared/directives/revelar.directive';
+import { gsap } from 'gsap';
+import { Flip } from 'gsap/Flip';
 import { interval, Subscription, switchMap } from 'rxjs';
 import { ReservationService } from '../reservation.service';
 import { ReservationResponse } from '../reservation.model';
 import { PaymentService } from '../../payments/payment.service';
 import { PaymentMethod } from '../../payments/payment.model';
 
+gsap.registerPlugin(Flip);
+
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, QRCodeModule, RevelarDirective],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, NgTemplateOutlet, RouterLink, QRCodeModule],
   template: `
     <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
 
@@ -143,67 +148,114 @@ import { PaymentMethod } from '../../payments/payment.model';
               <span class="etiqueta text-tinta-400">{{ confirmadas().length }}</span>
             </div>
 
-            <div class="grid gap-6 md:grid-cols-2">
-              @for (r of confirmadas(); track r.id; let i = $index) {
-                <article appRevelar [atraso]="(i % 4) * 80"
-                         class="bilhete flex flex-col relative" style="--recorte-y: calc(100% - 12rem)">
-                  <div class="p-6 flex-1">
-                    <div class="flex items-start justify-between gap-3 mb-4">
-                      @if (r.checkedInAt) {
-                        <span class="selo-neutro">Utilizado</span>
-                      } @else {
-                        <span class="selo-confirmado">Válido</span>
-                      }
-                      <span class="etiqueta text-tinta-400 text-right">
-                        {{ r.quantity }} {{ r.quantity === 1 ? 'ingresso' : 'ingressos' }}
-                      </span>
-                    </div>
-
-                    <h3 class="font-display text-titulo-sm font-semibold text-tinta-900 mb-1.5 leading-snug">
-                      {{ r.eventName }}
-                    </h3>
-                    <p class="text-sm text-tinta-500">{{ r.sectorName }}</p>
-                  </div>
-
-                  <div class="perfuracao"></div>
-
-                  <!-- Canhoto: o QR e o codigo -->
-                  <div class="px-6 h-48 flex items-center gap-5">
-                    <div class="shrink-0 bg-papel-50 p-1" [class.opacity-35]="r.checkedInAt">
-                      <qrcode [qrdata]="r.ticketToken!" [width]="120" [margin]="0"
-                              [errorCorrectionLevel]="'M'" [elementType]="'svg'"></qrcode>
-                    </div>
-
-                    <div class="min-w-0">
-                      @if (r.checkedInAt) {
-                        <p class="etiqueta text-tinta-400 mb-1.5">Check-in feito</p>
-                        <p class="numero text-sm text-tinta-600 mb-3">
-                          {{ r.checkedInAt | date:'dd/MM · HH:mm':undefined:'pt-BR' }}
-                        </p>
-                        <p class="text-xs leading-relaxed text-tinta-500">
-                          Este canhoto já foi carimbado e não vale para uma segunda entrada.
-                        </p>
-                      } @else {
-                        <p class="etiqueta text-tinta-400 mb-1.5">Na portaria</p>
-                        <p class="text-xs leading-relaxed text-tinta-600 mb-3">
-                          Apresente este código. Ele vale uma única vez.
-                        </p>
-                        <p class="numero text-[0.65rem] text-tinta-400 break-all">
-                          {{ codigoCurto(r) }}
-                        </p>
-                      }
-                    </div>
-                  </div>
-
-                  <!-- Carimbo sobre o ingresso ja utilizado -->
-                  @if (r.checkedInAt) {
-                    <div class="absolute inset-0 grid place-items-center pointer-events-none" aria-hidden="true">
-                      <span class="carimbo text-erro-500/50 border-erro-500/40">Utilizado</span>
-                    </div>
-                  }
-                </article>
+            <!-- O mesmo cabeçalho nos dois estados: a pessoa reconhece o ingresso
+                 que tocou no maço quando ele chega à frente. -->
+            <ng-template #cabecalho let-r>
+              <span class="min-w-0">
+                <span class="block font-display text-titulo-sm font-semibold text-tinta-900 leading-snug truncate">
+                  {{ r.eventName }}
+                </span>
+                <span class="block text-sm text-tinta-500 mt-0.5 truncate">
+                  {{ r.sectorName }} · {{ r.quantity }} {{ r.quantity === 1 ? 'ingresso' : 'ingressos' }}
+                </span>
+              </span>
+              @if (r.checkedInAt) {
+                <span class="selo-neutro shrink-0">Utilizado</span>
+              } @else {
+                <span class="selo-confirmado shrink-0">Válido</span>
               }
-            </div>
+            </ng-template>
+
+            <!--
+              A carteira: o primeiro ingresso fica aberto, com o QR à vista — na
+              portaria ninguém deveria precisar de um toque a mais. Os outros formam
+              um maço de cabeçalhos; tocar num deles o traz para a frente.
+
+              Uma lista só, em duas colunas no desktop: o aberto ocupa a primeira
+              (e acompanha a rolagem), o maço desce na segunda. Por ser a mesma
+              lista, o Flip anima o cartão atravessando de uma coluna para a outra.
+            -->
+            <ol #maco class="max-w-xl lg:max-w-none lg:grid lg:grid-cols-[minmax(0,34rem)_minmax(0,1fr)]
+                             lg:gap-x-10 lg:items-start"
+                aria-label="Carteira de ingressos">
+              @for (r of carteira(); track r.id; let i = $index; let frente = $first) {
+                <li class="relative {{
+                      i === 0 ? 'lg:col-start-1 lg:[grid-row:1/span_99] lg:sticky lg:top-24'
+                      : i === 1 ? 'mt-6 lg:mt-0 lg:col-start-2'
+                      : '-mt-3 lg:col-start-2' }}">
+                  <!--
+                    Só o aberto é .bilhete: a máscara das mordidas cortaria a sombra, e é
+                    a sombra para cima que faz o maço parecer empilhado. box-shadow, não
+                    filter: drop-shadow — repintar filtro em 14 cartões a cada quadro do
+                    Flip travava a animação.
+                  -->
+                  <article data-cartao
+                           class="relative overflow-hidden bg-papel-50 rounded-bilhete transition-opacity duration-200"
+                           [class.bilhete]="frente"
+                           [class.sombra-maco]="!frente"
+                           [class.h-20]="!frente"
+                           [class.opacity-60]="!frente && r.checkedInAt"
+                           [attr.tabindex]="frente ? -1 : null"
+                           [attr.data-frente]="frente ? '' : null"
+                           style="--recorte-y: calc(100% - 12rem)">
+
+                    @if (frente) {
+                      <div class="h-20 px-5 flex items-center justify-between gap-4">
+                        <ng-container *ngTemplateOutlet="cabecalho; context: { $implicit: r }" />
+                      </div>
+                    } @else {
+                      <button type="button" (click)="selecionar(r.id)"
+                              class="w-full h-20 px-5 flex items-center justify-between gap-4 text-left
+                                     transition-colors hover:bg-papel-100"
+                              [attr.aria-label]="'Abrir o ingresso de ' + r.eventName + ', ' + r.sectorName">
+                        <ng-container *ngTemplateOutlet="cabecalho; context: { $implicit: r }" />
+                      </button>
+                    }
+
+                    <!-- No maço, o canhoto existe mas fica recortado: inert o tira do
+                         Tab e do leitor de tela até o ingresso vir para a frente. -->
+                    <div [attr.inert]="frente ? null : ''">
+                      <div class="perfuracao"></div>
+
+                      <!-- Canhoto: o QR e o codigo -->
+                      <div class="px-6 h-48 flex items-center gap-5">
+                        <div class="shrink-0 bg-papel-50 p-1" [class.opacity-35]="r.checkedInAt">
+                          <qrcode [qrdata]="r.ticketToken!" [width]="120" [margin]="0"
+                                  [errorCorrectionLevel]="'M'" [elementType]="'svg'"></qrcode>
+                        </div>
+
+                        <div class="min-w-0">
+                          @if (r.checkedInAt) {
+                            <p class="etiqueta text-tinta-400 mb-1.5">Check-in feito</p>
+                            <p class="numero text-sm text-tinta-600 mb-3">
+                              {{ r.checkedInAt | date:'dd/MM · HH:mm':undefined:'pt-BR' }}
+                            </p>
+                            <p class="text-xs leading-relaxed text-tinta-500">
+                              Este canhoto já foi carimbado e não vale para uma segunda entrada.
+                            </p>
+                          } @else {
+                            <p class="etiqueta text-tinta-400 mb-1.5">Na portaria</p>
+                            <p class="text-xs leading-relaxed text-tinta-600 mb-3">
+                              Apresente este código. Ele vale uma única vez.
+                            </p>
+                            <p class="numero text-[0.65rem] text-tinta-400 break-all">
+                              {{ codigoCurto(r) }}
+                            </p>
+                          }
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Carimbo sobre o ingresso ja utilizado, só quando aberto -->
+                    @if (frente && r.checkedInAt) {
+                      <div class="absolute inset-0 grid place-items-center pointer-events-none" aria-hidden="true">
+                        <span class="carimbo text-erro-500/50 border-erro-500/40">Utilizado</span>
+                      </div>
+                    }
+                  </article>
+                </li>
+              }
+            </ol>
           </section>
         }
 
@@ -261,6 +313,33 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
     this.reservas().filter((r) => r.status === 'EXPIRED' || r.status === 'CANCELLED'),
   );
 
+  // ---------------------------------------------------------------- carteira
+  private readonly zona = inject(NgZone);
+  private readonly detector = inject(ChangeDetectorRef);
+  private readonly listaCarteira = viewChild<ElementRef<HTMLElement>>('maco');
+  private readonly reduzido = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /** Ingresso que a pessoa trouxe para a frente. Nulo até o primeiro toque. */
+  private readonly escolhidoId = signal<string | null>(null);
+
+  /** Na frente: o escolhido ou, sem escolha, o primeiro que ainda vale. */
+  private readonly frenteId = computed(() => {
+    const lista = this.confirmadas();
+    const escolhido = this.escolhidoId();
+    if (escolhido && lista.some((r) => r.id === escolhido)) return escolhido;
+    return (lista.find((r) => !r.checkedInAt) ?? lista[0])?.id ?? null;
+  });
+
+  /** A frente primeiro; atrás, os válidos e por último os já usados. */
+  readonly carteira = computed(() => {
+    const lista = this.confirmadas();
+    const id = this.frenteId();
+    const frente = lista.filter((r) => r.id === id);
+    const resto = lista.filter((r) => r.id !== id);
+    return [...frente, ...resto.filter((r) => !r.checkedInAt), ...resto.filter((r) => r.checkedInAt)];
+  });
+
   ngOnInit(): void {
     this.carregar();
     this.relogio = interval(1000).subscribe(() => this.agora.set(Date.now()));
@@ -304,6 +383,51 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
       CANCELLED: 'Cancelado',
     };
     return mapa[status] ?? status;
+  }
+
+  /**
+   * Traz um ingresso do maço para a frente.
+   *
+   * <p>Flip: mede todos os cartões, deixa o Angular reordenar o DOM e anima cada
+   * um da posição antiga para a nova. A altura também é animada — o cartão é
+   * overflow-hidden, então o canhoto com o QR vai aparecendo enquanto ele abre,
+   * e o que sai da frente fecha do mesmo jeito.
+   */
+  selecionar(id: string): void {
+    if (id === this.frenteId()) return;
+    const lista = this.listaCarteira()?.nativeElement;
+    const cartoes = lista ? Array.from(lista.querySelectorAll<HTMLElement>('[data-cartao]')) : [];
+    const antes = this.reduzido || cartoes.length === 0 ? null : Flip.getState(cartoes);
+
+    this.escolhidoId.set(id);
+    // Aplica a nova ordem agora, para o Flip medir o estado final em seguida.
+    this.detector.detectChanges();
+
+    // Mede onde o ingresso aberto terminou antes de o Flip deslocá-lo de volta
+    // para o ponto de partida.
+    const frente = lista?.querySelector<HTMLElement>('[data-frente]');
+    const topoFinal = frente?.getBoundingClientRect().top ?? 0;
+
+    if (antes) {
+      this.zona.runOutsideAngular(() => {
+        // prune: só anima quem mudou de lugar ou de tamanho. Os cartões do maço
+        // que ficam onde estavam não ganham camada nem transform à toa.
+        Flip.from(antes, { duration: 0.45, ease: 'power3.inOut', prune: true });
+      });
+    }
+
+    if (frente) {
+      // O foco acompanha o ingresso aberto (teclado e leitor de tela sabem onde
+      // estão). No celular ele sobe para o topo da carteira, que pode ter ficado
+      // acima da tela; a página vai até lá. No desktop ele é fixo e já está à vista.
+      frente.focus({ preventScroll: true });
+      if (topoFinal < 72) {
+        window.scrollTo({
+          top: topoFinal + window.scrollY - 96,
+          behavior: this.reduzido ? 'auto' : 'smooth',
+        });
+      }
+    }
   }
 
   escolherPagamento(id: string): void {

@@ -205,6 +205,12 @@
     }
   }
 
+  /* Sombra curta para cima: cada ingresso do maço da carteira parece pousado
+     sobre o anterior. Para cima porque é o de cima que cobre o de baixo. */
+  .sombra-maco {
+    box-shadow: 0 -6px 14px -8px rgb(var(--tinta-900) / 0.22);
+  }
+
   /* Regua fina: separador editorial */
   .regua {
     @apply h-px w-full bg-papel-300;
