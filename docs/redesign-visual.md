@@ -15,10 +15,10 @@ inspora (seção 4).
 ## 1. Onde paramos
 
 - **Branch:** `feature/canhoto-rebrand-e-correcoes` (já no GitHub).
-- **Feito:** ingresso 3D no hero (seção 3) e os itens 1, 2 e 3 do roteiro (seção 6).
-  De carona, um bug crítico de pagamento no backend (seção 8).
-- **Próximo:** item 4 do roteiro — lista de eventos. Pendente do item 3: trocar de
-  ingresso arrastando para o lado no celular.
+- **Feito:** o ingresso 3D viajando pela home, com a janela para o show e o rasgo
+  (seção 3); itens 1 a 4 do roteiro, o banner do item 5 e a transição entre
+  páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
+- **Próximo:** item 6 do roteiro — menu do celular. Depois painel, vídeo, modo escuro.
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
 
 ### Retomar em outro computador
@@ -82,48 +82,66 @@ comprimida em `frontend/public/`.
 
 ---
 
-## 3. O que foi feito: ingresso 3D no hero
+## 3. O ingresso 3D que viaja pela home
 
-Arquivos:
+Arquivos (todos em `frontend/src/app/features/home/`):
 
-- `frontend/src/app/features/home/ingresso-3d/ingresso-3d.component.ts` — moldura Angular. Faz `import()` dinâmico da cena, fora da zona do Angular.
-- `frontend/src/app/features/home/ingresso-3d/ingresso-3d.cena.ts` — Three.js + GSAP: geometria, materiais, luz, ciclo de giro, arraste, rolagem.
-- `frontend/src/app/features/home/ingresso-3d/ingresso-3d.texturas.ts` — desenho das faces em canvas (frente preta, verso verde, mapas do selo holográfico).
-- `frontend/src/app/features/home/home.component.ts` — hero novo + entrada do título com `SplitText`.
-- `frontend/src/styles.css` — classe `.luz-palco` (refletor verde e feixes de luz do fundo).
+- `ingresso-3d/ingresso-3d.component.ts` — moldura Angular. Recebe o `roteiro` e faz `import()` dinâmico da cena, fora da zona do Angular.
+- `ingresso-3d/ingresso-3d.cena.ts` — Three.js + GSAP: geometria em duas peças, materiais, luz, ciclo de giro, arraste, roteiro, rasgo, selo.
+- `ingresso-3d/ingresso-3d.texturas.ts` — faces em canvas, mapas do selo, **as medidas do contorno** e `svgDoIngresso()` (o mesmo contorno em SVG, usado como máscara da janela do show).
+- `ingresso-3d/roteiro.ts` — só os tipos do roteiro (sem Three.js).
+- `janela-show/janela-show.component.ts` — a janela para o show.
+- `home.component.ts` — o `ROTEIRO` (as paradas) e as âncoras no template.
 
-Comportamento:
+**Como funciona.** O canvas é `position: fixed`, do tamanho do hero (×1.35), e
+fica por cima da página com `pointer-events: none`. Cada seção da home tem uma
+âncora vazia (`data-ancora="hero" | "como" | "janela" | "canhoto" | "porque"`)
+que diz onde o ingresso fica. O `ROTEIRO` lista as paradas em ordem, cada uma com
+o momento da rolagem em que o ingresso está exatamente ali (`quando`), pose,
+"vida" (quanto gira, balança e segue o mouse), opacidade e rasgo. A cada quadro a
+cena descobre entre quais paradas a rolagem está, interpola tudo e move o canvas
+com `transform` de CSS. **Ela não usa um canvas do tamanho da tela de propósito**:
+em tela de alta densidade seriam milhões de pixels por quadro para mostrar um
+cartão.
 
-- Entra subindo e girando enquanto o título sobe linha a linha (único momento orquestrado da página).
-- Ciclo: segura a frente ~3,8s → vira para o verso (1,7s) → segura ~2,6s → volta. Sempre no mesmo sentido.
-- Balanço e flutuação leves em repouso; inclina seguindo o mouse (só com mouse, não no toque).
-- **Arrastar gira**; ao soltar, a inércia projeta e encaixa na face mais próxima. Dica "Arraste para girar" some no primeiro arraste e ao rolar.
-- Ao rolar para fora do hero, o ingresso deita para trás (ScrollTrigger com scrub).
-- `prefers-reduced-motion`: sem entrada, sem ciclo, sem balanço — pose fixa inclinada; arrastar continua funcionando.
-- Sem WebGL: cai para a face da frente como imagem chapada.
+A viagem:
+
+1. **Hero:** entra girando enquanto o título sobe; ciclo frente → verso; balança; inclina com o mouse; **arrastar gira** (a âncora do hero recebe o arraste, já que o canvas não recebe ponteiro).
+2. **Como funciona** (só desktop): pequeno embaixo do trilho dos passos, virando devagar enquanto eles se empilham. No celular a âncora some e ele também.
+3. **Janela para o show:** pousa reto, do tamanho exato do recorte, e some; por baixo aparece a foto da plateia recortada no formato dele, e o recorte cresce até a foto tomar a tela.
+4. **"O canhoto":** no lugar da foto. Quando a demonstração acusa adulteração (evento de janela `canhoto:assinatura`), o selo acende em vermelho e ele treme.
+5. **"Por que Canhoto?":** rasga na perfuração; o canhoto se solta e vem para perto.
+
+- `prefers-reduced-motion`: o roteiro vira só o hero (sem viagem), a foto volta a "O canhoto" e a janela vira foto inteira estática.
+- Sem WebGL: imagem chapada no hero, foto em "O canhoto".
 
 Onde ajustar:
 
 | Quero mudar | Onde |
 |---|---|
+| Por onde ele passa, pose em cada lugar, quando rasga | `ROTEIRO` em `home.component.ts` (e as âncoras no template) |
 | Textos, campos, cores das faces | `desenharFrente()` / `desenharVerso()` em `ingresso-3d.texturas.ts` |
-| Proporção, posição da perfuração | `LARGURA`, `ALTURA`, `POSICAO_PERFURACAO` em `ingresso-3d.texturas.ts` |
-| Recortes, dentes, espessura | constantes no topo de `ingresso-3d.cena.ts` |
+| Proporção, perfuração, mordidas, dentes | constantes no topo de `ingresso-3d.texturas.ts` (a máscara da janela acompanha) |
+| Como as peças se separam no rasgo | `aplicarRasgo()` em `ingresso-3d.cena.ts` |
 | Tempo do ciclo de giro | timeline `ciclo` em `ingresso-3d.cena.ts` |
-| Brilho / quão preto fica | `cena.environmentIntensity` (0.3) e `clearcoat` (0.18) em `ingresso-3d.cena.ts` |
-| Quanto o ingresso sangra para a direita | classes `lg:-mr-4 xl:-mr-16 2xl:-mr-36` no hero de `home.component.ts` |
+| Brilho / quão preto fica | `cena.environmentIntensity` (0.3) e `clearcoat` (0.18) |
+| Fases da janela (troca, crescimento, texto) | `FASES` em `janela-show.component.ts` — `trocaAte` precisa bater com a parada `fracao: 0.1` do roteiro |
 
-Peso: a cena é um chunk lazy de ~141 kB (gzip) que só baixa depois da primeira
-pintura. O pacote inicial continua em ~97 kB.
+Peso: a cena é um chunk lazy de ~124 kB (gzip) que só baixa depois da primeira
+pintura. O pacote inicial continua em ~99 kB.
 
 Cuidados que já estão no código e precisam continuar:
 
 - Canvas só desenha depois de `carregarFontes()` — texto desenhado com fonte reserva não muda depois.
-- Cada efeito escreve no **seu próprio grupo** (`rolagem`, `entrada`, `inclinacao`, `giro`); dois efeitos no mesmo `transform` se sobrescrevem.
+- Cada efeito escreve no **seu próprio grupo** (`entrada`, `pose`, `inclinacao`, `giro`, e um pivô por peça); dois efeitos no mesmo `transform` se sobrescrevem.
+- As duas peças **se sobrepõem um fio** (`SOBREPOE`) na linha do rasgo. Encostadas exatamente, a borda verde de dentro vazava pela emenda como uma linha.
+- Na janela, **a máscara fica numa moldura parada e o zoom só na foto de dentro**: na mesma camada, o `scale` levava a máscara junto e a janela saía maior que o ingresso e fora do lugar.
+- Paradas com `quando: 'secao'` medem a seção (não sticky), não a âncora: elemento sticky muda de posição com a rolagem e quebraria a conta.
 - O QR do ingresso é **decorativo de propósito** (semente fixa). QR funcional em material de marketing é convite a golpe.
 
-Não verificado ainda: celular de verdade (arraste por toque), Safari e Firefox.
-Os testes foram em Chrome headless com renderização por software.
+Não verificado ainda: celular de verdade, Safari e Firefox. Os testes foram em
+Chrome headless com renderização por software (lento para WebGL: a viagem
+completa leva minutos para fotografar).
 
 ---
 
@@ -165,24 +183,31 @@ Os testes foram em Chrome headless com renderização por software.
 - **Como ficou:** a foto abre por `clip-path` enquanto assenta de 1.18 para 1. Ao lado, em vez de texto embaralhando por enfeite, uma **demonstração de verdade**: o botão "Trocar um caractere" altera o id da reserva, a assinatura é recalculada com **HMAC-SHA256 real** (Web Crypto), embaralha com o `ScrambleTextPlugin` e o selo vai de "Válido" para "Assinatura não confere". A chave é só da demo (a real fica no backend).
 - **Armadilha importante:** o Chrome aplica `clip-path` no cálculo do `IntersectionObserver`. Com a moldura totalmente recortada, o observador **nunca dispara** — e o `loading="lazy"` da imagem (mesmo mecanismo) **nunca baixa a foto**. A diretiva mede por `getBoundingClientRect` na rolagem e força `loading="eager"`. Vale para qualquer revelação futura por `clip-path`.
 
-### 3. Meus ingressos como carteira  ✅ feito (2026-10-15) — falta o arraste no celular
+### 3. Meus ingressos como carteira  ✅ feito (2026-10-15)
 - **Onde:** `features/reservations/my-reservations/my-reservations.component.ts` + `.sombra-maco` em `styles.css`.
 - **Como ficou:** o primeiro ingresso **válido** fica aberto, com o QR à vista (na portaria, zero toques). Os outros formam um maço de cabeçalhos com sombra para cima; os usados vão para o fim, esmaecidos. Tocar num cartão do maço o traz para a frente com **`Flip`** (ele atravessa e abre; o anterior fecha). No desktop é **uma lista só em grid de duas colunas** — aberto fixo à esquerda, maço à direita —, o que deixa o Flip mover o cartão entre as colunas sem duplicar DOM. Foco vai para o ingresso aberto; o canhoto dos cartões do maço é `inert`.
 - **Armadilhas:** (1) referência de template `#carteira` com o mesmo nome do `computed` `carteira` → "not callable"; a referência virou `#maco`. (2) `filter: drop-shadow` em 14 cartões pesava na animação → `box-shadow`, e por isso só o aberto usa `.bilhete` (a máscara cortaria a sombra). (3) Nome de classe com `/` ou `[]` não funciona em `[class.xxx]` do Angular — crie uma classe nomeada no `styles.css`.
-- **Pendente:** no celular, arrastar o ingresso aberto para o lado trocaria para o próximo (`Draggable` + `InertiaPlugin`). Ficou de fora para não atrasar o resto.
+- **Arraste no celular (feito em 2026-10-15):** no toque, arrastar o ingresso aberto para o lado troca para o vizinho (esquerda = próximo, direita = anterior, dando a volta). Peteleco (> 0,35 px/ms) ou um terço da largura troca; menos que isso volta com mola. Só vira arraste depois de andar 8 px mais na horizontal que na vertical — o mesmo dedo rola a página. Mouse fica de fora (no desktop o maço está ao lado). Pointer events puros com delegação na raiz do componente; não precisou do `Draggable`.
 
-### 4. Lista de eventos  ← próximo
-- **Ref:** skiper35 (Hover expand); adaptação do skiper6 (imagem seguindo o cursor).
+### 4. Lista de eventos  ✅ feito (2026-10-15)
 - **Onde:** `features/events/events-list/events-list.component.ts`.
-- **Ideia:** no desktop, cards que expandem a foto no hover (só com mouse). Alternativa editorial: lista de nomes de eventos em Fraunces grande, com a foto do evento flutuando junto ao cursor (`gsap.quickTo`).
-- **Cuidado:** busca e paginação já existem — não quebrar.
+- **Como ficou:** o destaque é um **banner de ponta a ponta** (`mx-[calc(50%-50vw)]`), com o preço num canhoto pequeno no canto. Os demais em **linhas de três**: no desktop o cartão sob o mouse ou com foco cresce (`grow-[1.7]`) e os vizinhos cedem — o "hover expand" do skiper35. Abaixo de lg as linhas viram `display: contents` e os cartões caem numa grade de duas colunas; linha incompleta ganha espaçadores para não esticar um cartão sozinho.
+- **Globais que vieram junto:** `hoverOnlyWhenSupported` no Tailwind (hover só com mouse em todo o sistema) e `overflow-x: clip` no `<main>` (foto de 100vw não gera rolagem lateral; `clip`, e não `hidden`, para o `sticky` das páginas continuar funcionando).
 
-### 5. Detalhe do evento
-- **Ref:** skiper29/30/55 (parallax).
+### 5. Detalhe do evento  ✅ banner feito (2026-10-15)
 - **Onde:** `features/events/event-detail/event-detail.component.ts`.
-- **Ideia:** banner com parallax por `ScrollTrigger` e o seletor de setores com transição de estado. A `ParalaxeDirective` atual funciona; migrar só se ganhar algo.
+- **Como ficou:** a capa é um banner de ponta a ponta com paralaxe (a `ParalaxeDirective` existente) e o nome por cima. Evento sem capa mantém o layout antigo.
+- **Ainda dá para fazer:** transição de estado no seletor de setores.
 
-### 6. Menu do celular
+### Novo — Transição entre páginas  ✅ feito (2026-10-15)
+- **Onde:** `withViewTransitions` em `app.config.ts`, CSS `::view-transition-*` em `styles.css`, `nomearCapa()` na lista, banner do detalhe.
+- **Como ficou:** toda troca de rota tem crossfade curto (220 ms); clicando num evento, **a capa voa do cartão até o banner** do detalhe. Desligado com movimento reduzido; navegador sem suporte só troca de página.
+- **Armadilhas:** (1) o navegador fotografa a página nova logo que a rota renderiza — com o banner esperando a API, não havia o que ligar. A lista manda capa e nome por `RouterLink [state]` e o detalhe desenha o banner já no primeiro quadro. (2) Só a capa clicada recebe `view-transition-name` (dois elementos com o mesmo nome cancelam a transição). (3) O nome fica na moldura com `overflow: hidden`, não na `<img>`: o navegador captura o elemento sem o recorte dos ancestrais. (4) O build avisa `8 rules skipped due to selector errors` — é só a etapa de CSS crítico, que não entende pseudo-elementos; as regras continuam no CSS final (conferido no `dist/`).
+
+### Novo — Janela para o show  ✅ feito (2026-10-15)
+- Ver seção 3, parada 3. Foto: `hero-show.jpg` (a que saiu do hero). O texto fica à direita no desktop porque à esquerda a foto tem um celular com texto na tela.
+
+### 6. Menu do celular  ← próximo
 - **Ref:** skiper13 (Nike menu).
 - **Onde:** `shared/components/navbar/navbar.component.ts`.
 - **Ideia:** menu em tela cheia, links em Fraunces grande entrando em cascata (30–80ms entre itens), fechar mais rápido do que abrir.
@@ -270,6 +295,16 @@ await page.evaluateOnNewDocument((s) => {
   `devtools.timeline`) e some `Layout`, `Paint`, `EventDispatch`.
 - A primeira chamada à API depois de reiniciar o backend demora segundos (JVM
   aquecendo + log de SQL em DEBUG). Use `waitForSelector` com folga, não `sleep` fixo.
+- Print no meio de uma View Transition é loteria (a página velha fica congelada
+  até a nova estar pronta). Para saber se a transição rodou, colete
+  `document.getAnimations().map(a => a.effect?.pseudoElement)` durante a
+  navegação e procure `::view-transition-group(capa-evento)`.
+- Às vezes o print sai sem uma camada recém-pintada (a foto da janela apareceu
+  vazia uma vez e certa na seguinte). Antes de "consertar", leia o estado do
+  elemento (`style.opacity`, `mask-size`) para separar bug de atraso de pintura.
+- Toque: `page.setViewport({ ..., isMobile: true, hasTouch: true })` e
+  `page.touchscreen.touchStart/touchMove/touchEnd` geram pointer events com
+  `pointerType: 'touch'` — é assim que o arraste da carteira foi testado.
 
 **Dados de teste:** a conta `cliente@demo.com` não tem reservas no seed. Para ver
 a carteira cheia, reserve e pague pela API (`POST /reservations`, depois
@@ -307,3 +342,7 @@ aprovados.
   pagamentos de 2026-09-24 em `PROCESSING` com reserva `CONFIRMED`: sobras de testes
   com uma versão antiga do código. O webhook atual atualiza pagamento e reserva na
   mesma transação, então isso não se repete.
+- **Limpo em 2026-10-15:** um "Evento Concorrência Test" que o teste deixou no
+  banco local quando falhou (antes da correção da limpeza) aparecia na lista
+  pública e na marquise. Foi apagado com o setor, as 5 reservas e os 5 usuários
+  de teste dele. Se aparecer de novo em outro computador, é a mesma sobra.
