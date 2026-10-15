@@ -137,6 +137,22 @@
     mask-composite: intersect;
   }
 
+  /* Variante que muda de forma com a tela: em pé no celular (mordidas nas
+     laterais, na altura de --recorte-y) e deitada a partir de md (mordidas no
+     topo e na base, em --recorte-x). Usada junto com .bilhete nos passos do
+     "Como funciona". O seletor duplo vence o .bilhete sem !important. */
+  @media (min-width: 768px) {
+    .bilhete.bilhete-passo {
+      --recorte-x: 62%;
+      -webkit-mask-image:
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+      mask-image:
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+    }
+  }
+
   /* Linha pontilhada onde o canhoto se destaca do corpo do ingresso.
      Escrito em CSS puro: como imagem e tamanho de fundo compartilham o prefixo
      bg-* no Tailwind, registrar os dois no tema criaria classes colidentes. */

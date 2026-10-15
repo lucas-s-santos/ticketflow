@@ -7,6 +7,7 @@ import { RevelarDirective } from '../../shared/directives/revelar.directive';
 import { MarquiseComponent } from '../../shared/components/marquise/marquise.component';
 import { EventService } from '../events/event.service';
 import { Ingresso3dComponent } from './ingresso-3d/ingresso-3d.component';
+import { ComoFuncionaComponent } from './como-funciona/como-funciona.component';
 
 gsap.registerPlugin(SplitText);
 
@@ -21,7 +22,7 @@ interface Secao {
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, ParalaxeDirective, RevelarDirective, MarquiseComponent, Ingresso3dComponent],
+  imports: [RouterLink, ParalaxeDirective, RevelarDirective, MarquiseComponent, Ingresso3dComponent, ComoFuncionaComponent],
   template: `
     <!--
       ================= ABERTURA =================
@@ -83,31 +84,7 @@ interface Secao {
     }
 
     <!-- ================= COMO FUNCIONA ================= -->
-    <section id="como-funciona" class="border-b border-papel-300 bg-papel-200/60">
-      <div class="max-w-6xl mx-auto px-6 py-16 md:py-20">
-        <h2 class="text-titulo-md font-semibold text-tinta-900 mb-12">Como funciona</h2>
-
-        <ol class="grid md:grid-cols-3 gap-6 md:gap-7">
-          @for (passo of passos; track passo.numero; let i = $index) {
-            <li appRevelar [atraso]="i * 110"
-                class="bilhete overflow-hidden flex flex-col"
-                style="--recorte-y: calc(100% - 10.5rem)">
-
-              <img [src]="passo.imagem" [alt]="passo.alt" loading="lazy" decoding="async"
-                   class="w-full h-64 object-cover" />
-
-              <div class="perfuracao"></div>
-
-              <div class="px-6 py-6 flex-1 min-h-[10.5rem]">
-                <p class="numero text-sm font-bold text-acento-texto mb-2">{{ passo.numero }}</p>
-                <h3 class="text-titulo-sm font-semibold text-tinta-900 mb-2">{{ passo.titulo }}</h3>
-                <p class="text-sm leading-relaxed text-tinta-600">{{ passo.texto }}</p>
-              </div>
-            </li>
-          }
-        </ol>
-      </div>
-    </section>
+    <app-como-funciona />
 
     <!--
       ================= O CANHOTO =================
@@ -223,30 +200,6 @@ export class HomeComponent implements OnInit, OnDestroy {
       error: () => this.emCartaz.set([]),
     });
   }
-
-  readonly passos = [
-    {
-      numero: '01',
-      titulo: 'Compre pelo celular',
-      texto: 'Escolha o setor e reserve. A vaga trava no seu nome por quinze minutos enquanto você paga com Pix ou cartão.',
-      imagem: 'passo-comprar.jpg',
-      alt: 'Celular exibindo a tela inicial do aplicativo do Canhoto durante um show',
-    },
-    {
-      numero: '02',
-      titulo: 'Entre com o canhoto',
-      texto: 'Aproxime o QR do leitor na portaria. O código é conferido na hora e vale uma única vez.',
-      imagem: 'passo-entrar.jpg',
-      alt: 'Totem de portaria exibindo "Ingresso válido" enquanto um ingresso é aproximado do leitor',
-    },
-    {
-      numero: '03',
-      titulo: 'Acompanhe as vendas',
-      texto: 'Do outro lado, quem organiza vê ocupação por setor, receita e taxa de check-in conforme os ingressos saem.',
-      imagem: 'passo-acompanhar.jpg',
-      alt: 'Painel do organizador aberto num notebook, com a lista de eventos e os totais de venda',
-    },
-  ];
 
   readonly secoes: Secao[] = [
     {
