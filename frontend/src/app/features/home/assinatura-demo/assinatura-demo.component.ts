@@ -179,9 +179,11 @@ export class AssinaturaDemoComponent implements OnDestroy {
 
   private concluir(assinatura: string): void {
     if (this.destruido) return;
-    this.zona.run(() => {
-      this.estado.set(assinatura === this.assinaturaOriginal() ? 'valido' : 'invalido');
-    });
+    const valida = assinatura === this.assinaturaOriginal();
+    this.zona.run(() => this.estado.set(valida ? 'valido' : 'invalido'));
+    // O ingresso 3D da home escuta: adulterada, o selo dele acende em vermelho.
+    // Evento de janela em vez de serviço porque a cena vive fora do Angular.
+    window.dispatchEvent(new CustomEvent('canhoto:assinatura', { detail: { valida } }));
   }
 }
 

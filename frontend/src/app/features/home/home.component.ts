@@ -8,17 +8,57 @@ import { RevelarMascaraDirective } from '../../shared/directives/revelar-mascara
 import { MarquiseComponent } from '../../shared/components/marquise/marquise.component';
 import { EventService } from '../events/event.service';
 import { Ingresso3dComponent } from './ingresso-3d/ingresso-3d.component';
+import type { Parada } from './ingresso-3d/roteiro';
 import { ComoFuncionaComponent } from './como-funciona/como-funciona.component';
+import { JanelaShowComponent } from './janela-show/janela-show.component';
 import { AssinaturaDemoComponent } from './assinatura-demo/assinatura-demo.component';
 
 gsap.registerPlugin(SplitText);
+
+/** O hero: gira sozinho, aceita arraste, balança. */
+const PARADA_HERO: Parada = {
+  ancora: 'hero', quando: { tipo: 'topo' }, pose: { x: -0.1, y: 0, z: 0.09 }, vida: 1, ciclo: 1,
+};
+
+/**
+ * A viagem do ingresso pela home. Cada parada aponta para um data-ancora do
+ * template; entre elas, tudo é interpolado conforme a rolagem.
+ */
+const ROTEIRO: readonly Parada[] = [
+  PARADA_HERO,
+  // Como funciona (só desktop — no celular a âncora some e ele também): pequeno
+  // ao lado do trilho, virando devagar enquanto os passos se empilham.
+  {
+    ancora: 'como', quando: { tipo: 'secao', seletor: '#como-funciona', fracao: 0 },
+    preenche: 0.95, pose: { x: 0.12, y: -0.55, z: -0.04 }, vida: 0.6,
+  },
+  {
+    ancora: 'como', quando: { tipo: 'secao', seletor: '#como-funciona', fracao: 1 },
+    preenche: 0.95, pose: { x: 0.06, y: 0.45, z: 0.04 }, vida: 0.6,
+  },
+  // Janela do show: pousa reto, do tamanho exato do recorte, e some — a foto
+  // aparece no lugar dele. O 0.1 é o mesmo FASES.trocaAte da JanelaShowComponent.
+  { ancora: 'janela', quando: { tipo: 'secao', seletor: '#janela', fracao: 0 }, preenche: 1 },
+  { ancora: 'janela', quando: { tipo: 'secao', seletor: '#janela', fracao: 0.1 }, preenche: 1, opacidade: 0 },
+  { ancora: 'janela', quando: { tipo: 'secao', seletor: '#janela', fracao: 1 }, preenche: 1, opacidade: 0 },
+  // O canhoto: no lugar da foto, com o selo à vista para reagir à demonstração.
+  {
+    ancora: 'canhoto', quando: { tipo: 'centro' },
+    preenche: 0.88, pose: { x: -0.06, y: -0.32, z: -0.04 }, vida: 0.5,
+  },
+  // Por que "Canhoto"?: rasga na perfuração.
+  {
+    ancora: 'porque', quando: { tipo: 'centro' },
+    preenche: 0.8, pose: { x: -0.05, y: 0.22, z: 0.05 }, vida: 0.4, rasgo: 1,
+  },
+];
 
 @Component({
   selector: 'app-home',
   standalone: true,
   imports: [
     RouterLink, ParalaxeDirective, RevelarDirective, RevelarMascaraDirective, MarquiseComponent,
-    Ingresso3dComponent, ComoFuncionaComponent, AssinaturaDemoComponent,
+    Ingresso3dComponent, ComoFuncionaComponent, JanelaShowComponent, AssinaturaDemoComponent,
   ],
   template: `
     <!--
@@ -58,15 +98,26 @@ gsap.registerPlugin(SplitText);
         </div>
 
         <!--
-          O ingresso sangra para a direita no desktop: maior que a coluna, ele
-          ocupa o palco em vez de caber numa caixa. A sangria cresce com a tela
-          e nunca passa da margem que sobra fora do container de 72rem — senão o
-          ingresso inclinado seria cortado pela borda da janela.
+          Primeira parada do ingresso 3D, e onde ele aceita arraste. O ingresso em
+          si é um canvas fixo (app-ingresso-3d, no fim do template) que viaja pelas
+          âncoras da página; esta caixa só diz onde ele fica no hero.
+
+          Ele sangra para a direita no desktop: maior que a coluna, ocupa o palco
+          em vez de caber numa caixa. A sangria cresce com a tela e nunca passa da
+          margem que sobra fora do container de 72rem.
         -->
-        <div class="order-1 lg:order-2 relative h-[16rem] sm:h-[22rem] lg:h-[40rem] -mx-6 lg:mx-0 lg:-mr-4 xl:-mr-16 2xl:-mr-36">
+        <div data-ancora="hero" role="img"
+             aria-label="Ingresso do Canhoto em 3D: frente preta com QR code e selo holográfico, verso verde."
+             class="order-1 lg:order-2 relative select-none h-[16rem] sm:h-[22rem] lg:h-[40rem]
+                    -mx-6 lg:mx-0 lg:-mr-4 xl:-mr-16 2xl:-mr-36">
           <div class="absolute left-1/2 bottom-[10%] -translate-x-1/2 w-3/5 h-12 rounded-[50%] bg-acento-500/20 blur-3xl"
                aria-hidden="true"></div>
-          <app-ingresso-3d class="absolute inset-0" />
+          <!-- Duas camadas de propósito: a de fora aparece na entrada e some no
+               primeiro arraste; a de dentro some quando o ingresso sai do hero. -->
+          <p data-dica class="hidden lg:block absolute bottom-[17%] inset-x-0 text-center pointer-events-none opacity-0"
+             aria-hidden="true">
+            <span data-dica-rolagem class="etiqueta text-papel-50/40">Arraste para girar</span>
+          </p>
         </div>
       </div>
     </section>
@@ -83,22 +134,33 @@ gsap.registerPlugin(SplitText);
     <!-- ================= COMO FUNCIONA ================= -->
     <app-como-funciona />
 
+    <!-- ================= JANELA PARA O SHOW ================= -->
+    <app-janela-show />
+
     <!--
       ================= O CANHOTO =================
-      A foto abre por máscara ao entrar na tela, e ao lado a demonstração da
-      assinatura: a frase "trocar um caractere invalida a assinatura" vira um
-      botão que faz exatamente isso. Portaria e painel do organizador ficaram de
-      fora daqui: "Como funciona" já os apresenta.
+      O ingresso 3D pousa à esquerda, com o selo à vista; à direita, a
+      demonstração da assinatura — e quando ela acusa adulteração, o selo do
+      ingresso acende em vermelho. Sem a viagem (movimento reduzido ou sem
+      WebGL), a foto do ingresso ocupa o lugar.
     -->
     <section class="max-w-6xl mx-auto px-6 py-16 md:py-24">
       <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-        <div appRevelarMascara appParalaxe [deslocamento]="34"
-             class="bilhete overflow-hidden shadow-papel-alta"
-             style="--recorte-y: 50%">
-          <img src="secao-ingresso.jpg" alt="Ingresso do Canhoto sendo segurado na mão, com QR code impresso"
-               loading="lazy" decoding="async"
-               class="w-full h-72 md:h-[30rem] object-cover" />
+        <div data-ancora="canhoto" class="relative h-64 md:h-[30rem]">
+          @if (semViagem()) {
+            <div appRevelarMascara appParalaxe [deslocamento]="34"
+                 class="bilhete overflow-hidden shadow-papel-alta h-full"
+                 style="--recorte-y: 50%">
+              <img src="secao-ingresso.jpg" alt="Ingresso do Canhoto sendo segurado na mão, com QR code impresso"
+                   loading="lazy" decoding="async"
+                   class="w-full h-full object-cover" />
+            </div>
+          } @else {
+            <!-- Sombra no chão: o ingresso parece suspenso sobre a página, não colado nela. -->
+            <div class="absolute left-1/2 bottom-[16%] -translate-x-1/2 w-2/5 h-6 rounded-[50%] bg-tinta-900/15 blur-xl"
+                 aria-hidden="true"></div>
+          }
         </div>
 
         <div>
@@ -118,9 +180,14 @@ gsap.registerPlugin(SplitText);
       </div>
     </section>
 
-    <!-- ================= FECHAMENTO ================= -->
-    <section class="border-t border-papel-300 bg-papel-200/60">
-      <div class="max-w-6xl mx-auto px-6 py-16 md:py-24">
+    <!--
+      ================= FECHAMENTO =================
+      A última parada: o ingresso rasga na perfuração enquanto o texto conta por
+      que o produto se chama assim.
+    -->
+    <section id="porque" class="border-t border-papel-300 bg-papel-200/60">
+      <div class="max-w-6xl mx-auto px-6 py-16 md:py-24 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]
+                  gap-8 lg:gap-16 items-center">
         <div class="max-w-2xl">
           <h2 class="text-titulo-lg font-semibold text-tinta-900 mb-5">
             Por que “Canhoto”?
@@ -136,8 +203,14 @@ gsap.registerPlugin(SplitText);
           </p>
           <a routerLink="/events" class="btn-tinta">Começar pelos eventos</a>
         </div>
+        @if (!semViagem()) {
+          <div data-ancora="porque" aria-hidden="true" class="h-52 sm:h-64 lg:h-72"></div>
+        }
       </div>
     </section>
+
+    <!-- O ingresso 3D: um canvas fixo que percorre as âncoras acima, na ordem do roteiro. -->
+    <app-ingresso-3d [roteiro]="roteiro" (semViagem)="semViagem.set(true)" />
   `,
 })
 export class HomeComponent implements OnInit, OnDestroy {
@@ -148,6 +221,18 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   /** Nomes dos proximos eventos, para a marquise. */
   readonly emCartaz = signal<string[]>([]);
+
+  private readonly reduzido = typeof window !== 'undefined'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  /**
+   * Com movimento reduzido o ingresso fica no hero — atravessar a página
+   * conforme a rolagem é exatamente o tipo de movimento que essa preferência
+   * pede para evitar. Sem WebGL, também não há viagem. Nos dois casos a foto
+   * volta a ocupar a seção "O canhoto".
+   */
+  readonly semViagem = signal(this.reduzido);
+  readonly roteiro: readonly Parada[] = this.reduzido ? [PARADA_HERO] : ROTEIRO;
 
   private animacao?: gsap.Context;
   private destruido = false;

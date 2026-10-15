@@ -17,6 +17,12 @@ export const ALTURA = 1.5;
 /** Onde o canhoto se destaca do corpo, em fração da largura, vista de frente. */
 export const POSICAO_PERFURACAO = 0.72;
 
+/** Contorno, em unidades da cena. A geometria 3D e a janela do show leem daqui. */
+export const RAIO_CANTO = 0.08;
+export const RAIO_RECORTE = 0.13;
+export const DENTES = 6;
+export const RAIO_DENTE = 0.045;
+
 /** Selo holográfico, em pixels da textura da frente. */
 const SELO = { x: 1240, y: 392, raio: 104 };
 
@@ -128,6 +134,50 @@ export function desenharMapaMaterial(): HTMLCanvasElement {
   g.arc(SELO.x, SELO.y, SELO.raio, 0, Math.PI * 2);
   g.fill();
   return canvas;
+}
+
+/**
+ * Só o selo em branco, o resto preto: é o mapa de emissão que faz o selo acender
+ * em vermelho quando a demonstração da assinatura acusa adulteração.
+ */
+export function desenharMascaraSelo(): HTMLCanvasElement {
+  const { canvas, g } = novoCanvas();
+  g.fillStyle = '#000';
+  g.fillRect(0, 0, CW, CH);
+  g.fillStyle = '#fff';
+  g.beginPath();
+  g.arc(SELO.x, SELO.y, SELO.raio, 0, Math.PI * 2);
+  g.fill();
+  return canvas;
+}
+
+/**
+ * O contorno do ingresso em SVG, com as mesmas medidas da geometria 3D (em
+ * centésimos de unidade, eixo Y para baixo). É a máscara da janela do show:
+ * o ingresso 3D chega, some, e a foto aparece recortada exatamente no formato
+ * dele.
+ */
+export function svgDoIngresso(): string {
+  const k = 100;
+  const f = (v: number) => Number(v.toFixed(2));
+  const W = f(LARGURA * k);
+  const H = f(ALTURA * k);
+  const r = f(RAIO_CANTO * k);
+  const n = f(RAIO_RECORTE * k);
+  const d = f(RAIO_DENTE * k);
+  const xp = f(W * POSICAO_PERFURACAO);
+  const passo = (H - 2 * r) / DENTES;
+
+  // Sentido horário a partir do canto superior esquerdo. Nos arcos, sweep 0 é
+  // a mordida para dentro e sweep 1 é o canto arredondado para fora.
+  let p = `M${r},0 H${f(xp - n)} A${n},${n} 0 0 0 ${f(xp + n)},0 H${f(W - r)} A${r},${r} 0 0 1 ${W},${r}`;
+  for (let i = 0; i < DENTES; i++) {
+    const cy = r + passo * (i + 0.5);
+    p += ` V${f(cy - d)} A${d},${d} 0 0 0 ${W},${f(cy + d)}`;
+  }
+  p += ` V${f(H - r)} A${r},${r} 0 0 1 ${f(W - r)},${H} H${f(xp + n)} A${n},${n} 0 0 0 ${f(xp - n)},${H}`;
+  p += ` H${r} A${r},${r} 0 0 1 0,${f(H - r)} V${r} A${r},${r} 0 0 1 ${r},0 Z`;
+  return `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 ${W} ${H}'><path d='${p}'/></svg>`;
 }
 
 /**

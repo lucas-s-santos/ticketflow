@@ -86,6 +86,10 @@ const ESCURECE = 0.2;
                 </li>
               }
             </ol>
+
+            <!-- Parada do ingresso 3D que viaja pela home: pequeno, ao lado dos passos.
+                 Só no desktop; no celular a coluna não existe e ele some neste trecho. -->
+            <div data-ancora="como" aria-hidden="true" class="hidden lg:block mt-10 h-36"></div>
           </div>
         </div>
 
