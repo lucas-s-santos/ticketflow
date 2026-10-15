@@ -4,25 +4,22 @@ import { gsap } from 'gsap';
 import { SplitText } from 'gsap/SplitText';
 import { ParalaxeDirective } from '../../shared/directives/paralaxe.directive';
 import { RevelarDirective } from '../../shared/directives/revelar.directive';
+import { RevelarMascaraDirective } from '../../shared/directives/revelar-mascara.directive';
 import { MarquiseComponent } from '../../shared/components/marquise/marquise.component';
 import { EventService } from '../events/event.service';
 import { Ingresso3dComponent } from './ingresso-3d/ingresso-3d.component';
 import { ComoFuncionaComponent } from './como-funciona/como-funciona.component';
+import { AssinaturaDemoComponent } from './assinatura-demo/assinatura-demo.component';
 
 gsap.registerPlugin(SplitText);
-
-interface Secao {
-  readonly etiqueta: string;
-  readonly titulo: string;
-  readonly texto: string;
-  readonly imagem: string;
-  readonly alt: string;
-}
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [RouterLink, ParalaxeDirective, RevelarDirective, MarquiseComponent, Ingresso3dComponent, ComoFuncionaComponent],
+  imports: [
+    RouterLink, ParalaxeDirective, RevelarDirective, RevelarMascaraDirective, MarquiseComponent,
+    Ingresso3dComponent, ComoFuncionaComponent, AssinaturaDemoComponent,
+  ],
   template: `
     <!--
       ================= ABERTURA =================
@@ -88,32 +85,38 @@ interface Secao {
 
     <!--
       ================= O CANHOTO =================
-      Cada peça da identidade ganha o próprio espaço, com a copy ao lado em HTML.
-      Portaria e painel do organizador ficaram de fora daqui: "Como funciona"
-      ja os apresenta, e repetir o mesmo assunto duas vezes na mesma pagina
-      cansa mais do que informa.
+      A foto abre por máscara ao entrar na tela, e ao lado a demonstração da
+      assinatura: a frase "trocar um caractere invalida a assinatura" vira um
+      botão que faz exatamente isso. Portaria e painel do organizador ficaram de
+      fora daqui: "Como funciona" já os apresenta.
     -->
-    @for (secao of secoes; track secao.titulo) {
-      <section class="max-w-6xl mx-auto px-6 py-16 md:py-24">
-        <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
+    <section class="max-w-6xl mx-auto px-6 py-16 md:py-24">
+      <div class="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
 
-          <div appRevelar appParalaxe [deslocamento]="34"
-               class="bilhete overflow-hidden shadow-papel-alta"
-               style="--recorte-y: 50%">
-            <img [src]="secao.imagem" [alt]="secao.alt" loading="lazy" decoding="async"
-                 class="w-full h-72 md:h-96 object-cover" />
-          </div>
-
-          <div appRevelar [atraso]="120">
-            <p class="etiqueta text-acento-texto mb-4">{{ secao.etiqueta }}</p>
-            <h2 class="text-titulo-lg font-semibold text-tinta-900 mb-5 leading-tight">
-              {{ secao.titulo }}
-            </h2>
-            <p class="text-lg leading-relaxed text-tinta-600">{{ secao.texto }}</p>
-          </div>
+        <div appRevelarMascara appParalaxe [deslocamento]="34"
+             class="bilhete overflow-hidden shadow-papel-alta"
+             style="--recorte-y: 50%">
+          <img src="secao-ingresso.jpg" alt="Ingresso do Canhoto sendo segurado na mão, com QR code impresso"
+               loading="lazy" decoding="async"
+               class="w-full h-72 md:h-[30rem] object-cover" />
         </div>
-      </section>
-    }
+
+        <div>
+          <div appRevelar>
+            <p class="etiqueta text-acento-texto mb-4">O canhoto</p>
+            <h2 class="text-titulo-lg font-semibold text-tinta-900 mb-5 leading-tight">
+              Uma parte fica com você
+            </h2>
+            <p class="text-lg leading-relaxed text-tinta-600 mb-8">
+              O código do seu ingresso é assinado com HMAC e não fica guardado num
+              banco à espera de ser copiado: ele é recalculado a partir da reserva.
+              Trocar um caractere invalida a assinatura inteira.
+            </p>
+          </div>
+          <app-assinatura-demo appRevelar [atraso]="120" class="block" />
+        </div>
+      </div>
+    </section>
 
     <!-- ================= FECHAMENTO ================= -->
     <section class="border-t border-papel-300 bg-papel-200/60">
@@ -200,16 +203,4 @@ export class HomeComponent implements OnInit, OnDestroy {
       error: () => this.emCartaz.set([]),
     });
   }
-
-  readonly secoes: Secao[] = [
-    {
-      etiqueta: 'O canhoto',
-      titulo: 'Uma parte fica com você',
-      texto: `O código do seu ingresso é assinado com HMAC e não fica guardado num
-              banco à espera de ser copiado: ele é recalculado a partir da reserva.
-              Trocar um caractere invalida a assinatura inteira.`,
-      imagem: 'secao-ingresso.jpg',
-      alt: 'Ingresso do Canhoto sendo segurado na mão, com QR code impresso',
-    },
-  ];
 }
