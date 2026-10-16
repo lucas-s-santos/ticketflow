@@ -18,7 +18,10 @@ inspora (seção 4).
 - **Feito:** o ingresso 3D viajando pela home, com a janela para o show e o rasgo
   (seção 3); itens 1 a 4 do roteiro, o banner do item 5 e a transição entre
   páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
-- **Próximo:** item 6 do roteiro — menu do celular. Depois painel, vídeo, modo escuro.
+- **Revisão de celular (2026-10-15):** todas as telas auditadas em 390×844 (script
+  de auditoria na seção 7); nenhuma rola para o lado.
+- **Próximo:** item 8 do roteiro — seção de vídeo (precisa dos `.mp4`). Depois modo
+  escuro e micro-interações.
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
 
 ### Retomar em outro computador
@@ -175,7 +178,8 @@ completa leva minutos para fotografar).
 
 ### 1. Home — "Como funciona" empilhando  ✅ feito (2026-10-15)
 - **Onde:** `features/home/como-funciona/como-funciona.component.ts` + `.bilhete-passo` em `styles.css`.
-- **Como ficou:** os 3 passos são ingressos deitados (em pé no celular) que grudam no topo um sobre o outro. O empilhamento é **CSS puro** (`sticky` com topo crescente via `--i`); o script só faz o de baixo encolher e escurecer enquanto o próximo o cobre, e enche de verde um trilho de perfuração no desktop marcando o passo atual.
+- **Como ficou:** os 3 passos são ingressos deitados (em pé no celular) que grudam no topo um sobre o outro. O empilhamento é **CSS puro** (`sticky` com topo crescente via `--i`); o script só escurece o de baixo enquanto o próximo o cobre e acende os números.
+- **Revisto em 2026-10-15 (pedido do Lucas: "cartões em cima do outro certinho" e manter os números acendendo):** os cartões têm **a mesma altura** (`h-[25rem]` celular, `md:h-[22rem]`) e **não encolhem mais** — encolher deixava os de trás mais estreitos e o maço torto. Cada um gruda 12–16 px abaixo do anterior, com sombra para cima (`.sombra-maco`). Os números (`.numero-passo` em `styles.css`) acendem em verde e o atual brilha e dá um pulo; no **celular** há uma faixa grudada no topo com 01–02–03 e a perfuração enchendo, já que o trilho lateral é só de desktop. Tudo que mostra o passo atual tem `data-passo`, e o script só reescreve os atributos quando o passo muda.
 - **Armadilhas:** (1) ScrollTrigger mede errado a posição de elemento `sticky` — as contas são feitas à mão, relativas à janela, com a posição natural somando alturas. (2) Posições guardadas em px quebram quando a marquise aparece depois da API e empurra a página — por isso tudo é recalculado por quadro a partir de um único `getBoundingClientRect`. (3) O efeito só começa quando o próximo cartão **encosta** no de baixo, senão ele escurece antes de ser coberto.
 
 ### 2. Home — revelação da foto e a seção "O canhoto"  ✅ feito (2026-10-15)
@@ -207,16 +211,14 @@ completa leva minutos para fotografar).
 ### Novo — Janela para o show  ✅ feito (2026-10-15)
 - Ver seção 3, parada 3. Foto: `hero-show.jpg` (a que saiu do hero). O texto fica à direita no desktop porque à esquerda a foto tem um celular com texto na tela.
 
-### 6. Menu do celular  ← próximo
-- **Ref:** skiper13 (Nike menu).
-- **Onde:** `shared/components/navbar/navbar.component.ts`.
-- **Ideia:** menu em tela cheia, links em Fraunces grande entrando em cascata (30–80ms entre itens), fechar mais rápido do que abrir.
+### 6. Menu do celular  ✅ feito (2026-10-15)
+- **Onde:** `shared/components/navbar/navbar.component.ts` (+ `@keyframes surgir` em `styles.css`).
+- **Como ficou:** painel escuro de tela cheia abaixo da barra, links grandes em Fraunces entrando em cascata (50 ms entre itens), página atual em verde, usuário e "Sair" no pé. Fecha sem animação; Esc fecha; a página de trás não rola enquanto está aberto.
+- **Armadilhas:** (1) **a navbar nunca grudou no topo** — o `sticky` estava no `<header>`, preso dentro do `<app-navbar>`, que tem a altura dele. O host agora é `display: contents`. Vale para qualquer componente cujo elemento raiz precise de `sticky`. (2) O painel do menu fica **fora** do `<header>`: com a barra sólida, o `backdrop-filter` dela vira referência de posicionamento dos filhos `fixed`, e o painel ficava preso à altura da barra.
 
-### 7. Painel do organizador
-- **Ref:** reactbits Count Up; skiper76 (Apple feature block) como inspiração de layout.
-- **Onde:** `features/organizer/dashboard/dashboard.component.ts`.
-- **Ideia:** números rolando até o valor (`.numero` já usa `tabular-nums`, então não "dançam"), barras de ocupação por setor crescendo na entrada.
-- **Cuidado:** painel é ferramenta de uso diário — animação só na primeira carga, nunca em atualização.
+### 7. Painel do organizador  ✅ feito (2026-10-15)
+- **Onde:** `features/organizer/dashboard/dashboard.component.ts`, `shared/directives/contagem.directive.ts`, `.barra-ocupacao` em `styles.css`.
+- **Como ficou:** os totais contam até o valor (`appContagem`, só na primeira exibição); as barras de ocupação crescem da esquerda (`scaleX`, não `width`). No celular cada setor vira uma linha empilhada — a tabela de cinco colunas só cabia rolando para o lado.
 
 ### 8. Seção de vídeo
 - **Ref:** skiper67 (Video player).
@@ -302,6 +304,11 @@ await page.evaluateOnNewDocument((s) => {
 - Às vezes o print sai sem uma camada recém-pintada (a foto da janela apareceu
   vazia uma vez e certa na seguinte). Antes de "consertar", leia o estado do
   elemento (`style.opacity`, `mask-size`) para separar bug de atraso de pintura.
+- **Auditoria de celular:** abra cada rota em 390×844 (`isMobile`, `hasTouch`,
+  sessão injetada), tire `screenshot({ fullPage: true })` e compare
+  `document.documentElement.scrollWidth` com 390 para pegar rolagem lateral.
+  Print de página inteira **não rola a página**: o que depende de rolagem
+  (`appRevelar`, `loading="lazy"`) aparece vazio ali sem ser bug.
 - Toque: `page.setViewport({ ..., isMobile: true, hasTouch: true })` e
   `page.touchscreen.touchStart/touchMove/touchEnd` geram pointer events com
   `pointerType: 'touch'` — é assim que o arraste da carteira foi testado.
