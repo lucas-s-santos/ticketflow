@@ -2,72 +2,87 @@ import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../auth.service';
+import { PainelContaComponent } from '../painel-conta/painel-conta.component';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, PainelContaComponent],
   template: `
-    <div class="max-w-md mx-auto px-6 py-16 md:py-24">
+    <!-- No desktop, foto e benefícios à esquerda; no celular, só o formulário. -->
+    <div class="lg:grid lg:grid-cols-2 lg:min-h-[calc(100svh-4rem)]">
+      <app-painel-conta class="hidden lg:flex" imagem="janela-show.jpg"
+                        titulo="Seu lugar já está esperando." [itens]="beneficios" />
+      <div class="lg:flex lg:items-center">
+        <div class="w-full max-w-md mx-auto px-6 py-16 md:py-24">
 
-      <p class="etiqueta text-acento-texto mb-3">Sua conta</p>
-      <h1 class="text-titulo-md font-semibold text-tinta-900 mb-10">Entrar no Canhoto</h1>
+          <p class="etiqueta text-acento-texto mb-3">Sua conta</p>
+          <h1 class="text-titulo-md font-semibold text-tinta-900 mb-10">Entrar no Canhoto</h1>
 
-      <div class="bilhete p-7 mb-6" style="--recorte-y: 50%">
-        @if (mensagemErro()) {
-          <div class="aviso-erro mb-6">{{ mensagemErro() }}</div>
-        }
-
-        <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
-          <div>
-            <label for="email" class="campo-rotulo">E-mail</label>
-            <input id="email" type="email" formControlName="email" maxlength="254" autocomplete="email" class="campo" />
-            @if (form.controls.email.invalid && form.controls.email.touched) {
-              <p class="campo-erro">Informe um e-mail válido</p>
+          <div class="bilhete p-7 mb-6" style="--recorte-y: 50%">
+            @if (mensagemErro()) {
+              <div class="aviso-erro mb-6">{{ mensagemErro() }}</div>
             }
+
+            <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
+              <div>
+                <label for="email" class="campo-rotulo">E-mail</label>
+                <input id="email" type="email" formControlName="email" maxlength="254" autocomplete="email" class="campo" />
+                @if (form.controls.email.invalid && form.controls.email.touched) {
+                  <p class="campo-erro">Informe um e-mail válido</p>
+                }
+              </div>
+
+              <div>
+                <label for="senha" class="campo-rotulo">Senha</label>
+                <input id="senha" type="password" formControlName="password" maxlength="72" autocomplete="current-password" class="campo" />
+                @if (form.controls.password.invalid && form.controls.password.touched) {
+                  <p class="campo-erro">Informe sua senha</p>
+                }
+              </div>
+
+              <button type="submit" [disabled]="carregando()" class="btn-principal w-full py-3">
+                {{ carregando() ? 'Entrando…' : 'Entrar' }}
+              </button>
+            </form>
           </div>
 
-          <div>
-            <label for="senha" class="campo-rotulo">Senha</label>
-            <input id="senha" type="password" formControlName="password" maxlength="72" autocomplete="current-password" class="campo" />
-            @if (form.controls.password.invalid && form.controls.password.touched) {
-              <p class="campo-erro">Informe sua senha</p>
-            }
+          <!-- Acesso de demonstracao: sem isto, quem avalia o projeto precisa criar
+               uma conta antes de ver qualquer coisa — e a maioria simplesmente sai. -->
+          <div class="border border-dashed border-papel-400 p-5">
+            <p class="etiqueta text-tinta-500 mb-1">Avaliando o projeto?</p>
+            <p class="text-sm text-tinta-600 mb-4">
+              Entre com uma conta pronta, sem cadastro.
+            </p>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" (click)="entrarComoDemo('cliente@demo.com')"
+                      [disabled]="carregando()" class="btn-contorno btn-pequeno">
+                Entrar como cliente
+              </button>
+              <button type="button" (click)="entrarComoDemo('organizador@demo.com')"
+                      [disabled]="carregando()" class="btn-contorno btn-pequeno">
+                Entrar como organizador
+              </button>
+            </div>
           </div>
 
-          <button type="submit" [disabled]="carregando()" class="btn-principal w-full py-3">
-            {{ carregando() ? 'Entrando…' : 'Entrar' }}
-          </button>
-        </form>
-      </div>
-
-      <!-- Acesso de demonstracao: sem isto, quem avalia o projeto precisa criar
-           uma conta antes de ver qualquer coisa — e a maioria simplesmente sai. -->
-      <div class="border border-dashed border-papel-400 p-5">
-        <p class="etiqueta text-tinta-500 mb-1">Avaliando o projeto?</p>
-        <p class="text-sm text-tinta-600 mb-4">
-          Entre com uma conta pronta, sem cadastro.
-        </p>
-        <div class="flex flex-wrap gap-2">
-          <button type="button" (click)="entrarComoDemo('cliente@demo.com')"
-                  [disabled]="carregando()" class="btn-contorno btn-pequeno">
-            Entrar como cliente
-          </button>
-          <button type="button" (click)="entrarComoDemo('organizador@demo.com')"
-                  [disabled]="carregando()" class="btn-contorno btn-pequeno">
-            Entrar como organizador
-          </button>
+          <p class="mt-8 text-center text-sm text-tinta-500">
+            Não tem conta?
+            <a routerLink="/register" class="link font-medium">Criar uma agora</a>
+          </p>
         </div>
       </div>
-
-      <p class="mt-8 text-center text-sm text-tinta-500">
-        Não tem conta?
-        <a routerLink="/register" class="link font-medium">Criar uma agora</a>
-      </p>
     </div>
   `,
 })
 export class LoginComponent {
+
+  readonly beneficios = [
+    'Seus ingressos ficam na carteira, prontos para a portaria',
+    'A vaga trava no seu nome por 15 minutos enquanto você paga',
+    'Cada código é assinado e vale uma única entrada',
+  ];
+
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
