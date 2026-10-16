@@ -4,6 +4,8 @@ export interface SectorStats {
   sold: number;
   available: number;
   revenue: number;
+  /** Ingressos que já passaram pela portaria. */
+  checkedIn: number;
 }
 
 export interface EventStats {
@@ -12,6 +14,7 @@ export interface EventStats {
   date: string;
   totalCapacity: number;
   totalSold: number;
+  totalCheckedIn: number;
   revenue: number;
   sectors: SectorStats[];
 }
@@ -19,6 +22,7 @@ export interface EventStats {
 export interface OrganizerDashboard {
   totalEvents: number;
   totalTicketsSold: number;
+  totalCheckedIn: number;
   totalRevenue: number;
   events: EventStats[];
 }

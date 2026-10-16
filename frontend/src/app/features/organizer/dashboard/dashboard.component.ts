@@ -25,8 +25,8 @@ import { OrganizerDashboard } from '../organizer.model';
       </div>
 
       @if (carregando()) {
-        <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 animate-pulse" aria-hidden="true">
-          @for (vazio of [1, 2, 3]; track vazio) {
+        <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-4 bg-papel-300 border border-papel-300 animate-pulse" aria-hidden="true">
+          @for (vazio of [1, 2, 3, 4]; track vazio) {
             <div class="bg-papel-50 p-7 h-32"></div>
           }
         </div>
@@ -40,7 +40,7 @@ import { OrganizerDashboard } from '../organizer.model';
 
         <!-- ================= TOTAIS ================= -->
         <!-- gap-px sobre fundo escuro cria as divisorias, sem bordas duplicadas -->
-        <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 mb-14">
+        <div class="grid gap-px sm:grid-cols-2 lg:grid-cols-4 bg-papel-300 border border-papel-300 mb-14">
           <div appRevelar class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Eventos</p>
             <p class="numero text-titulo-md font-bold text-tinta-900 leading-none" [appContagem]="d.totalEvents"></p>
@@ -53,6 +53,16 @@ import { OrganizerDashboard } from '../organizer.model';
             <p class="etiqueta text-tinta-400 mb-3">Receita</p>
             <p class="numero text-titulo-md font-bold text-acento-texto leading-none"
                [appContagem]="d.totalRevenue" formato="moeda"></p>
+          </div>
+          <!-- Quantos dos ingressos vendidos já passaram pela portaria. -->
+          <div appRevelar [atraso]="240" class="bg-papel-50 p-7">
+            <p class="etiqueta text-tinta-400 mb-3">Check-in</p>
+            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">
+              <span [appContagem]="taxaCheckIn(d.totalCheckedIn, d.totalTicketsSold)"></span>%
+            </p>
+            <p class="text-xs text-tinta-500 mt-2">
+              {{ d.totalCheckedIn }} de {{ d.totalTicketsSold }} {{ d.totalTicketsSold === 1 ? 'ingresso entrou' : 'ingressos entraram' }}
+            </p>
           </div>
         </div>
 
@@ -85,6 +95,12 @@ import { OrganizerDashboard } from '../organizer.model';
                     <p class="numero text-sm font-semibold text-acento-texto mt-0.5">
                       {{ ev.revenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
                     </p>
+                    @if (ev.totalSold > 0) {
+                      <p class="etiqueta text-tinta-400 mt-1.5">
+                        {{ ev.totalCheckedIn }} {{ ev.totalCheckedIn === 1 ? 'entrou' : 'entraram' }}
+                        · {{ taxaCheckIn(ev.totalCheckedIn, ev.totalSold) }}%
+                      </p>
+                    }
                   </div>
                 </div>
 
@@ -187,6 +203,11 @@ export class DashboardComponent implements OnInit {
         this.carregando.set(false);
       },
     });
+  }
+
+  /** Fração dos ingressos vendidos que já passou pela portaria, em % inteiro. */
+  taxaCheckIn(entraram: number, vendidos: number): number {
+    return vendidos > 0 ? Math.round((entraram / vendidos) * 100) : 0;
   }
 
   ocupacao(vendidos: number, capacidade: number): number {

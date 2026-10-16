@@ -7,5 +7,6 @@ public record SectorStatsDto(
         int capacity,
         int sold,        // ingressos confirmados (pagos)
         int available,   // assentos ainda disponíveis
-        BigDecimal revenue
+        BigDecimal revenue,
+        int checkedIn    // ingressos que já passaram pela portaria
 ) {}

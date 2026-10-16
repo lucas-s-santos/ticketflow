@@ -29,10 +29,13 @@ public class OrganizerDashboardService {
     private final TicketSectorRepository ticketSectorRepository;
     private final ReservationRepository reservationRepository;
 
-    // Acumulador de vendas por setor
-    private record Sales(int qty, BigDecimal revenue) {
-        static Sales empty() { return new Sales(0, BigDecimal.ZERO); }
-        Sales add(int q, BigDecimal r) { return new Sales(qty + q, revenue.add(r)); }
+    // Acumulador de vendas por setor. "entradas" conta ingressos, não reservas:
+    // o check-in é por reserva, e uma reserva pode valer vários ingressos.
+    private record Sales(int qty, BigDecimal revenue, int entradas) {
+        static Sales empty() { return new Sales(0, BigDecimal.ZERO, 0); }
+        Sales add(Sales outra) {
+            return new Sales(qty + outra.qty, revenue.add(outra.revenue), entradas + outra.entradas);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -41,14 +44,14 @@ public class OrganizerDashboardService {
         Map<UUID, Sales> salesBySector = new HashMap<>();
         for (Reservation r : reservationRepository.findConfirmedForOwner(organizerId, ReservationStatus.CONFIRMED)) {
             UUID sectorId = r.getTicketSector().getId();
-            salesBySector.merge(sectorId,
-                    new Sales(r.getQuantity(), r.getTotalPrice()),
-                    (a, b) -> a.add(b.qty(), b.revenue()));
+            int entradas = r.getCheckedInAt() != null ? r.getQuantity() : 0;
+            salesBySector.merge(sectorId, new Sales(r.getQuantity(), r.getTotalPrice(), entradas), Sales::add);
         }
 
         List<Event> events = eventRepository.findByOwnerIdOrderByDateAsc(organizerId);
 
         long totalTicketsSold = 0;
+        long totalCheckedIn = 0;
         BigDecimal totalRevenue = BigDecimal.ZERO;
         List<EventStatsDto> eventStats = new java.util.ArrayList<>();
 
@@ -58,25 +61,29 @@ public class OrganizerDashboardService {
             List<SectorStatsDto> sectorStats = new java.util.ArrayList<>();
             int eventCapacity = 0;
             int eventSold = 0;
+            int eventCheckedIn = 0;
             BigDecimal eventRevenue = BigDecimal.ZERO;
 
             for (TicketSector s : sectors) {
                 Sales sales = salesBySector.getOrDefault(s.getId(), Sales.empty());
                 sectorStats.add(new SectorStatsDto(
-                        s.getName(), s.getCapacity(), sales.qty(), s.getAvailableSeats(), sales.revenue()));
+                        s.getName(), s.getCapacity(), sales.qty(), s.getAvailableSeats(), sales.revenue(),
+                        sales.entradas()));
                 eventCapacity += s.getCapacity();
                 eventSold += sales.qty();
+                eventCheckedIn += sales.entradas();
                 eventRevenue = eventRevenue.add(sales.revenue());
             }
 
             eventStats.add(new EventStatsDto(
                     event.getId(), event.getName(), event.getDate(),
-                    eventCapacity, eventSold, eventRevenue, sectorStats));
+                    eventCapacity, eventSold, eventCheckedIn, eventRevenue, sectorStats));
 
             totalTicketsSold += eventSold;
+            totalCheckedIn += eventCheckedIn;
             totalRevenue = totalRevenue.add(eventRevenue);
         }
 
-        return new OrganizerDashboardDto(events.size(), totalTicketsSold, totalRevenue, eventStats);
+        return new OrganizerDashboardDto(events.size(), totalTicketsSold, totalCheckedIn, totalRevenue, eventStats);
     }
 }
