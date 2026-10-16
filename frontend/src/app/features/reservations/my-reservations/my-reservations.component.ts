@@ -4,7 +4,7 @@ import {
 } from '@angular/core';
 import { CurrencyPipe, DatePipe, NgTemplateOutlet, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
-import { QRCodeModule } from 'angularx-qrcode';
+import { QRCodeComponent } from 'angularx-qrcode';
 import { gsap } from 'gsap';
 import { Flip } from 'gsap/Flip';
 import { interval, Subscription, switchMap } from 'rxjs';
@@ -18,7 +18,7 @@ gsap.registerPlugin(Flip);
 @Component({
   selector: 'app-my-reservations',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, NgTemplateOutlet, RouterLink, QRCodeModule],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, NgTemplateOutlet, RouterLink, QRCodeComponent],
   template: `
     <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
 
