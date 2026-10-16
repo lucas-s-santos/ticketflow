@@ -145,6 +145,21 @@ npm start
 ```
 - App: http://localhost:4200
 
+### Sem Docker (Windows)
+Sem Docker Desktop, o Postgres e o RabbitMQ podem vir do [Scoop](https://scoop.sh). Uma vez só:
+```powershell
+scoop bucket add java; scoop bucket add extras
+scoop install temurin21-jdk postgresql rabbitmq
+scoop install erlang@28.5.0.8; scoop hold erlang   # o RabbitMQ 4.3.6 não roda na Erlang 29
+```
+Depois, a cada vez (sobe banco, fila e backend; o frontend continua com `npm start`):
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\subir-sem-docker.ps1
+```
+> O script contorna duas armadilhas: a Erlang não aceita acento no caminho do perfil do
+> Windows (os dados do RabbitMQ ficam numa pasta do Scoop) e o RabbitMQ 4.3.6 quebra na
+> Erlang 29 — daí a Erlang 28 com `hold`, para o `scoop update` não trocá-la.
+
 ---
 
 ## 📦 Fases do Projeto
