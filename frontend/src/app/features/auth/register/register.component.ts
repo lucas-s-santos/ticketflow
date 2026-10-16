@@ -56,7 +56,7 @@ type Papel = 'CLIENTE' | 'ORGANIZADOR';
                   role="radio"
                   [attr.aria-checked]="papelAtual() === opcao.valor"
                   (click)="escolherPapel(opcao.valor)"
-                  class="text-left border p-4 transition-all duration-150"
+                  class="text-left border p-4 transition-[border-color,background-color,box-shadow,transform] duration-150 active:scale-[0.99]"
                   [class]="papelAtual() === opcao.valor
                     ? 'border-acento-500 bg-acento-100/50 ring-1 ring-acento-escuro'
                     : 'border-papel-300 bg-papel-50 hover:border-tinta-400'"

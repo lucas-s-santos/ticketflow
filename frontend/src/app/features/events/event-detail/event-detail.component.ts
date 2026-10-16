@@ -140,7 +140,8 @@ const MAX_INGRESSOS = 10;
                 [attr.aria-checked]="setorId() === setor.id"
                 [disabled]="setor.availableSeats === 0"
                 (click)="selecionar(setor)"
-                class="w-full text-left border px-5 py-4 transition-all duration-150 flex items-center gap-5
+                class="w-full text-left border px-5 py-4 transition-[border-color,background-color,box-shadow,transform] duration-150
+                       active:scale-[0.99] flex items-center gap-5
                        disabled:opacity-45 disabled:cursor-not-allowed"
                 [class]="setorId() === setor.id
                   ? 'border-acento-500 bg-acento-100/50 ring-1 ring-acento-escuro'

@@ -277,22 +277,29 @@
   }
 
   /* -------------------------------------------------------------------------
-     BOTOES — retangulares, com deslocamento tatil no clique.
+     BOTOES — retangulares, que afundam de leve no toque.
      O primario e verde da marca com texto PRETO (14:1). Texto branco sobre
      esse verde daria 1.24 e seria ilegivel.
+
+     scale(0.97) no :active em vez de descer 1px: no celular o dedo cobre o
+     botao e um deslocamento de 1px nao se ve; o encolhimento se percebe na
+     borda. Transicao so das propriedades que mudam — "all" animaria tambem
+     largura e padding se algum dia mudassem.
      ------------------------------------------------------------------------- */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
-           transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none;
+           active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease,
+                color 150ms ease, border-color 150ms ease, opacity 150ms ease;
   }
   .btn-principal {
-    @apply btn bg-acento-500 text-tinta-900 hover:bg-acento-600 active:translate-y-px;
+    @apply btn bg-acento-500 text-tinta-900 hover:bg-acento-600;
   }
   .btn-tinta {
-    @apply btn bg-tinta-900 text-papel-50 hover:bg-tinta-800 active:translate-y-px;
+    @apply btn bg-tinta-900 text-papel-50 hover:bg-tinta-800;
   }
   .btn-contorno {
-    @apply btn border border-tinta-900 text-tinta-900 hover:bg-tinta-900 hover:text-papel-50 active:translate-y-px;
+    @apply btn border border-tinta-900 text-tinta-900 hover:bg-tinta-900 hover:text-papel-50;
   }
   .btn-fantasma {
     @apply btn text-tinta-600 hover:text-acento-texto hover:bg-papel-200;

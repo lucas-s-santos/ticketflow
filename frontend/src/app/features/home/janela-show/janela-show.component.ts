@@ -2,6 +2,20 @@ import { ChangeDetectionStrategy, Component, ElementRef, NgZone, OnDestroy, afte
 import { RouterLink } from '@angular/router';
 import { svgDoIngresso } from '../ingresso-3d/ingresso-3d.texturas';
 
+/**
+ * O que aparece dentro da janela. Com {@code video}, o show fica em movimento
+ * (sem som, em loop, só tocando com a seção perto da tela); sem ele, a foto.
+ * O poster é o primeiro quadro do vídeo — a foto que aparece enquanto ele
+ * carrega e no lugar dele com movimento reduzido.
+ *
+ * Para trocar: veja "Seção de vídeo" em docs/redesign-visual.md (formato e o
+ * comando do ffmpeg que gera o .mp4 e o poster a partir do arquivo bruto).
+ */
+const MIDIA: { readonly video: string | null; readonly poster: string } = {
+  video: null,
+  poster: 'hero-show.jpg',
+};
+
 /** Trechos da rolagem pela seção, de 0 (topo grudou) a 1 (fim do trecho grudado). */
 const FASES = {
   /** O ingresso 3D some por cima da janela (o roteiro da home usa o mesmo valor). */
@@ -40,9 +54,18 @@ const FASES = {
           A origem do zoom fica no palco: é o que aparece primeiro dentro da janela.
         -->
         <div #moldura class="absolute inset-0" [style.opacity]="reduzido ? 1 : 0">
-          <img #foto src="hero-show.jpg" loading="eager" decoding="async"
-               alt="Plateia de um show com as mãos para o alto, sob refletores verdes"
-               class="w-full h-full object-cover origin-[66%_40%]" />
+          @if (midia.video && !reduzido) {
+            <!-- [muted] como propriedade: o atributo sozinho, criado pelo Angular
+                 depois do parse, não deixa o vídeo mudo e o navegador bloqueia o play. -->
+            <video #foto [muted]="true" muted loop playsinline preload="none" [poster]="midia.poster"
+                   aria-hidden="true" class="w-full h-full object-cover origin-[66%_40%]">
+              <source [src]="midia.video" type="video/mp4" />
+            </video>
+          } @else {
+            <img #foto [src]="midia.poster" loading="eager" decoding="async"
+                 alt="Plateia de um show com as mãos para o alto, sob refletores verdes"
+                 class="w-full h-full object-cover origin-[66%_40%]" />
+          }
         </div>
 
         <!-- Onde o ingresso 3D pousa antes de virar janela: mesmo tamanho do recorte inicial. -->
@@ -74,13 +97,16 @@ const FASES = {
 })
 export class JanelaShowComponent implements OnDestroy {
 
+  readonly midia = MIDIA;
+
   readonly reduzido = typeof window !== 'undefined'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   private readonly zona = inject(NgZone);
   private readonly secao = viewChild.required<ElementRef<HTMLElement>>('secao');
   private readonly moldura = viewChild.required<ElementRef<HTMLElement>>('moldura');
-  private readonly foto = viewChild.required<ElementRef<HTMLImageElement>>('foto');
+  /** A foto ou o vídeo: o zoom de entrada vale para os dois. */
+  private readonly foto = viewChild.required<ElementRef<HTMLImageElement | HTMLVideoElement>>('foto');
   private readonly ancora = viewChild.required<ElementRef<HTMLElement>>('ancora');
   private readonly veu = viewChild.required<ElementRef<HTMLElement>>('veu');
   private readonly texto = viewChild.required<ElementRef<HTMLElement>>('texto');
@@ -168,6 +194,15 @@ export class JanelaShowComponent implements OnDestroy {
     };
     const observador = new IntersectionObserver(([registro]) => {
       visivel = registro.isIntersecting;
+      // O vídeo só toca com a seção por perto: fora dela é bateria gasta à toa.
+      if (foto instanceof HTMLVideoElement) {
+        if (visivel) {
+          foto.preload = 'auto';
+          foto.play().catch(() => undefined);
+        } else {
+          foto.pause();
+        }
+      }
       agendar();
     }, { rootMargin: '50% 0px' });
     observador.observe(secao);

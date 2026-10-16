@@ -91,7 +91,7 @@ const ROTEIRO: readonly Parada[] = [
           <div data-abertura class="flex flex-wrap items-center gap-3">
             <a routerLink="/events" class="btn-principal">Ver eventos em cartaz</a>
             <a href="#como-funciona"
-               class="btn border border-papel-50/40 text-papel-50 hover:bg-papel-50 hover:text-tinta-900 active:translate-y-px">
+               class="btn border border-papel-50/40 text-papel-50 hover:bg-papel-50 hover:text-tinta-900">
               Como funciona
             </a>
           </div>
