@@ -20,8 +20,8 @@ inspora (seção 4).
   páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
 - **Revisão de celular (2026-10-15):** todas as telas auditadas em 390×844 (script
   de auditoria na seção 7); nenhuma rola para o lado.
-- **Próximo:** o vídeo da janela (prompts na seção 6, item 8) e o modo
-  escuro (item 9).
+- **Próximo:** regerar o vídeo da catraca (prompt corrigido no item 8) e decidir o
+  modo escuro (item 9) — perguntar ao Lucas antes, porque muda a identidade.
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
 
 ### Retomar em outro computador
@@ -209,7 +209,7 @@ completa leva minutos para fotografar).
 - **Armadilhas:** (1) o navegador fotografa a página nova logo que a rota renderiza — com o banner esperando a API, não havia o que ligar. A lista manda capa e nome por `RouterLink [state]` e o detalhe desenha o banner já no primeiro quadro. (2) Só a capa clicada recebe `view-transition-name` (dois elementos com o mesmo nome cancelam a transição). (3) O nome fica na moldura com `overflow: hidden`, não na `<img>`: o navegador captura o elemento sem o recorte dos ancestrais. (4) O build avisa `8 rules skipped due to selector errors` — é só a etapa de CSS crítico, que não entende pseudo-elementos; as regras continuam no CSS final (conferido no `dist/`).
 
 ### Novo — Janela para o show  ✅ feito (2026-10-15)
-- Ver seção 3, parada 3. Foto: `hero-show.jpg` (a que saiu do hero). O texto fica à direita no desktop porque à esquerda a foto tem um celular com texto na tela.
+- Ver seção 3, parada 3. Desde 2026-10-16 dentro da janela roda um vídeo do show (item 8), não mais a foto `hero-show.jpg` (removida).
 
 ### 6. Menu do celular  ✅ feito (2026-10-15)
 - **Onde:** `shared/components/navbar/navbar.component.ts` (+ `@keyframes surgir` em `styles.css`).
@@ -220,28 +220,28 @@ completa leva minutos para fotografar).
 - **Onde:** `features/organizer/dashboard/dashboard.component.ts`, `shared/directives/contagem.directive.ts`, `.barra-ocupacao` em `styles.css`.
 - **Como ficou:** os totais contam até o valor (`appContagem`, só na primeira exibição); as barras de ocupação crescem da esquerda (`scaleX`, não `width`). No celular cada setor vira uma linha empilhada — a tabela de cinco colunas só cabia rolando para o lado.
 
-### 8. Seção de vídeo  ⏳ código pronto, esperando o vídeo (2026-10-15)
-- **Decisão:** em vez de uma seção a mais, o vídeo entra **dentro da janela para o show** — a foto da plateia vira o show em movimento. A home já tem seções demais para mais uma.
-- **Os `.mp4` da raiz não servem** (analisados quadro a quadro): o "intro" é Docker/Java/gráficos em roxo e ciano com texto de IA embaralhado ("LRNW ACRENS", "roxvoh/ticuat"); o "promo" tem filmagem boa, mas é roxo, termina num letreiro em inglês e a tela do celular tem texto ilegível. Girar o matiz para o verde não salva: os lasers ciano viram rosa e as pessoas ficam verdes.
-- **O código já está pronto:** `MIDIA` no topo de `janela-show.component.ts`. Com `video` preenchido, o `<video>` (mudo, loop, `playsinline`) só baixa e toca com a seção por perto e pausa fora dela; com movimento reduzido fica a foto (`poster`). Testado com um trecho temporário.
-- **Vídeo a gerar no Google Flow** (Veo, 16:9, 1080p, 8 s; gerar 2–4 variações e escolher a sem mãos deformadas e sem letras):
-
-  > Cinematic wide shot from inside a packed concert crowd at night, looking toward a big stage. Lime-green stage lights and laser beams (acid lime, #B9F706) cut through thick haze; everything else is deep black and dark charcoal. Silhouettes of the crowd in the foreground with hands raised, backlit. Slow, steady dolly-in toward the stage. Shallow depth of field, subtle film grain. No text, no logos, no letters, no numbers, no screens, no phones. Main subject centered so the frame can be cropped to vertical.
-
-  Opcional, para um player em modal ("o Canhoto na portaria"):
-
-  > Close-up at a concert venue entrance at night: a hand holds a smartphone showing a large plain QR code (no text on the screen) and brings it to a dark turnstile scanner with a glowing lime-green ring light (#B9F706). The ring flashes brighter as it reads the code, then the gate opens and the camera follows the person stepping forward into a crowd lit by lime-green stage lights. Dark, moody, cinematic, shallow depth of field. No readable text, no logos, no letters or numbers anywhere.
-
-- **Quando o arquivo chegar** (salvar na raiz como `janela-show-bruto.mp4`; `/*.mp4` da raiz não vai para o git):
+### 8. Vídeo na janela para o show  ✅ feito (2026-10-16)
+- **Decisão:** em vez de uma seção a mais, o vídeo entra **dentro da janela para o show** — a foto da plateia virou o show em movimento.
+- **Arquivos:** `frontend/public/janela-show.mp4` (9 s, 1600 px, sem som, 2,8 MB) e `janela-show.jpg` (poster = primeiro quadro). Ligados em `MIDIA`, no topo de `janela-show.component.ts`. O `<video>` (mudo, loop, `playsinline`) só baixa e toca com a seção por perto e pausa fora dela; com movimento reduzido fica o poster.
+- **Origem:** gerado no Google Flow (Veo, 16:9, 1080p) — o bruto `Crowd_watching_concert_stage_1080p_20261015220432.mp4` fica na raiz do computador de casa (`/*.mp4` da raiz não vai para o git). Havia outra variação boa (`..._20261015220323.mp4`, mais escura); dá para trocar com o mesmo comando abaixo.
+- **Os `.mp4` antigos da raiz não servem:** roxos, com texto de IA embaralhado e letreiro em inglês; girar o matiz para o verde deixava lasers rosa e pessoas verdes.
+- **Comando usado** (o loop fecha sem pulo: o último segundo se dissolve no primeiro):
 
   ```bash
-  # vídeo sem som, 1080p, H.264 com faststart (começa a tocar antes de baixar inteiro); alvo < 3 MB — se passar, suba o -crf
-  ffmpeg -i janela-show-bruto.mp4 -an -vf "scale=1920:-2" -c:v libx264 -crf 27 -preset slow \
-         -movflags +faststart -pix_fmt yuv420p frontend/public/janela-show.mp4
-  # poster = primeiro quadro (é o que aparece enquanto carrega e com movimento reduzido)
-  ffmpeg -i frontend/public/janela-show.mp4 -frames:v 1 -q:v 3 frontend/public/janela-show.jpg
+  ffmpeg -i BRUTO.mp4 -an -filter_complex "[0:v]split[a][b];[a]trim=start=1,setpts=PTS-STARTPTS[corpo];[b]trim=0:1,setpts=PTS-STARTPTS[inicio];[corpo][inicio]xfade=transition=fade:duration=1:offset=8,scale=1600:-2,format=yuv420p[v]"          -map "[v]" -c:v libx264 -crf 28 -preset slow -movflags +faststart frontend/public/janela-show.mp4
+  ffmpeg -i frontend/public/janela-show.mp4 -frames:v 1 -q:v 4 frontend/public/janela-show.jpg
   ```
-  e em `MIDIA`: `video: 'janela-show.mp4'`, `poster: 'janela-show.jpg'`.
+  (`offset` = duração do bruto − 2; para 10 s, 8. Alvo < 3 MB: se passar, suba o `-crf`.)
+
+- **Prompt que funcionou** (Flow, 16:9, 1080p, 8 s; gerar 2–4 variações):
+
+  > Cinematic wide shot from inside a packed concert crowd at night, looking toward a big stage. Acid lime-green stage lights and laser beams cut through thick haze; everything else is deep black and dark charcoal. Silhouettes of the crowd in the foreground with hands raised, backlit. Slow, steady dolly-in toward the stage. Shallow depth of field, subtle film grain. No text, no logos, no letters, no numbers, no screens, no phones. Main subject centered so the frame can be cropped to vertical.
+
+- **Pendente — vídeo da catraca:** o primeiro saiu com **"#B9F706" escrito no scanner** (o código da cor estava no prompt e a IA escreveu como texto). Apagar com `delogo` deixou retângulos borrados em cima do anel e do celular — não serve. Regerar com o prompt abaixo (sem código de cor). Ideia de uso: o cartão do passo 02 do "Como funciona" ("Entre com o canhoto") com o vídeo no lugar da foto.
+
+  > Close-up at a concert venue entrance at night: a hand holds a smartphone showing a large plain QR code (no text on the screen) and brings it to a dark metal turnstile scanner with a glowing acid lime-green ring light. The ring flashes brighter as it reads the code, then the gate opens and the camera follows the person stepping forward into a crowd lit by lime-green stage lights. Dark, moody, cinematic, shallow depth of field. Plain unmarked surfaces: no printed text, labels, logos, letters or numbers on the scanner, the phone or anywhere in the frame.
+
+- **Lição para prompts de vídeo:** nunca pôr código de cor (hex) nem palavras que possam virar letreiro; descrever a cor em palavras e repetir "sem texto".
 
 ### 9. Modo escuro
 - **Ref:** skiper26 (Theme toggle).

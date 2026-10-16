@@ -12,8 +12,8 @@ import { svgDoIngresso } from '../ingresso-3d/ingresso-3d.texturas';
  * comando do ffmpeg que gera o .mp4 e o poster a partir do arquivo bruto).
  */
 const MIDIA: { readonly video: string | null; readonly poster: string } = {
-  video: null,
-  poster: 'hero-show.jpg',
+  video: 'janela-show.mp4',
+  poster: 'janela-show.jpg',
 };
 
 /** Trechos da rolagem pela seção, de 0 (topo grudou) a 1 (fim do trecho grudado). */
@@ -78,11 +78,10 @@ const FASES = {
              class="absolute inset-0 bg-gradient-to-t from-tinta-900/95 via-tinta-900/35 to-transparent"
              [style.opacity]="reduzido ? 1 : 0"></div>
 
-        <!-- No desktop o texto vai para a direita, sobre a plateia escura: à
-             esquerda a foto tem um celular com texto na tela, que brigaria com o título. -->
+        <!-- Texto embaixo, sobre a plateia em silhueta, que é a parte mais escura do vídeo. -->
         <div #texto class="absolute inset-x-0 bottom-0" [style.opacity]="reduzido ? 1 : 0">
-          <div class="max-w-6xl mx-auto px-6 pb-14 md:pb-20 lg:flex lg:justify-end">
-            <div class="lg:w-[30rem]">
+          <div class="max-w-6xl mx-auto px-6 pb-14 md:pb-20">
+            <div class="max-w-xl">
               <h2 class="text-titulo-xl font-semibold text-papel-50 mb-7">
                 Daqui para frente,<br />
                 é só show.
