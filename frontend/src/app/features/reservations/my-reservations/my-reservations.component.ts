@@ -145,8 +145,17 @@ gsap.registerPlugin(Flip);
         @if (confirmadas().length > 0) {
           <section class="mb-14">
             <div class="flex items-baseline gap-3 mb-5">
-              <h2 class="text-titulo-sm font-semibold text-tinta-900">Prontos para usar</h2>
-              <span class="etiqueta text-tinta-400">{{ confirmadas().length }}</span>
+              <!-- O título conta só o que ainda entra: com todos já usados, "Prontos
+                   para usar" mostrava um ingresso carimbado como UTILIZADO. -->
+              @if (validos() > 0) {
+                <h2 class="text-titulo-sm font-semibold text-tinta-900">Prontos para usar</h2>
+                <span class="etiqueta text-tinta-400">
+                  {{ validos() }}@if (usados() > 0) { · {{ usados() }} {{ usados() === 1 ? 'usado' : 'usados' }}}
+                </span>
+              } @else {
+                <h2 class="text-titulo-sm font-semibold text-tinta-900">Já utilizados</h2>
+                <span class="etiqueta text-tinta-400">{{ usados() }}</span>
+              }
             </div>
 
             <!-- O mesmo cabeçalho nos dois estados: a pessoa reconhece o ingresso
@@ -248,10 +257,12 @@ gsap.registerPlugin(Flip);
                       </div>
                     </div>
 
-                    <!-- Carimbo sobre o ingresso ja utilizado, só quando aberto -->
+                    <!-- Carimbo sobre o ingresso ja utilizado, só quando aberto. Fica em
+                         cima do QR — o que perdeu a validade —, não do texto ao lado,
+                         que precisa continuar legível (horário do check-in). -->
                     @if (frente && r.checkedInAt) {
-                      <div class="absolute inset-0 grid place-items-center pointer-events-none" aria-hidden="true">
-                        <span class="carimbo text-erro-500/50 border-erro-500/40">Utilizado</span>
+                      <div class="absolute left-6 bottom-0 h-48 w-32 grid place-items-center pointer-events-none" aria-hidden="true">
+                        <span class="carimbo text-xs px-2 py-1 tracking-[0.14em] text-erro-500/80 border-erro-500/60 bg-papel-50/85">Utilizado</span>
                       </div>
                     }
                   </article>
@@ -316,6 +327,9 @@ export class MyReservationsComponent implements OnInit, OnDestroy {
   readonly confirmadas = computed(() =>
     this.reservas().filter((r) => r.status === 'CONFIRMED' && !!r.ticketToken),
   );
+  /** Confirmados que ainda entram na portaria, e os que já entraram. */
+  readonly validos = computed(() => this.confirmadas().filter((r) => !r.checkedInAt).length);
+  readonly usados = computed(() => this.confirmadas().length - this.validos());
   readonly encerradas = computed(() =>
     this.reservas().filter((r) => r.status === 'EXPIRED' || r.status === 'CANCELLED'),
   );
