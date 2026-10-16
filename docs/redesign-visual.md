@@ -20,8 +20,8 @@ inspora (seção 4).
   páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
 - **Revisão de celular (2026-10-15):** todas as telas auditadas em 390×844 (script
   de auditoria na seção 7); nenhuma rola para o lado.
-- **Próximo:** item 8 do roteiro — seção de vídeo (precisa dos `.mp4`). Depois modo
-  escuro e micro-interações.
+- **Próximo:** o vídeo da janela (prompts na seção 6, item 8) e o modo
+  escuro (item 9).
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
 
 ### Retomar em outro computador
@@ -220,18 +220,36 @@ completa leva minutos para fotografar).
 - **Onde:** `features/organizer/dashboard/dashboard.component.ts`, `shared/directives/contagem.directive.ts`, `.barra-ocupacao` em `styles.css`.
 - **Como ficou:** os totais contam até o valor (`appContagem`, só na primeira exibição); as barras de ocupação crescem da esquerda (`scaleX`, não `width`). No celular cada setor vira uma linha empilhada — a tabela de cinco colunas só cabia rolando para o lado.
 
-### 8. Seção de vídeo
-- **Ref:** skiper67 (Video player).
-- **Ideia:** vídeo promo em destaque na home, com capa e play que abre em modal.
-- **Pré-requisito:** os `.mp4` da raiz (seção 1) comprimidos em `frontend/public/` — alvo < 3 MB, `preload="none"`, com `poster`.
+### 8. Seção de vídeo  ⏳ código pronto, esperando o vídeo (2026-10-15)
+- **Decisão:** em vez de uma seção a mais, o vídeo entra **dentro da janela para o show** — a foto da plateia vira o show em movimento. A home já tem seções demais para mais uma.
+- **Os `.mp4` da raiz não servem** (analisados quadro a quadro): o "intro" é Docker/Java/gráficos em roxo e ciano com texto de IA embaralhado ("LRNW ACRENS", "roxvoh/ticuat"); o "promo" tem filmagem boa, mas é roxo, termina num letreiro em inglês e a tela do celular tem texto ilegível. Girar o matiz para o verde não salva: os lasers ciano viram rosa e as pessoas ficam verdes.
+- **O código já está pronto:** `MIDIA` no topo de `janela-show.component.ts`. Com `video` preenchido, o `<video>` (mudo, loop, `playsinline`) só baixa e toca com a seção por perto e pausa fora dela; com movimento reduzido fica a foto (`poster`). Testado com um trecho temporário.
+- **Vídeo a gerar no Google Flow** (Veo, 16:9, 1080p, 8 s; gerar 2–4 variações e escolher a sem mãos deformadas e sem letras):
+
+  > Cinematic wide shot from inside a packed concert crowd at night, looking toward a big stage. Lime-green stage lights and laser beams (acid lime, #B9F706) cut through thick haze; everything else is deep black and dark charcoal. Silhouettes of the crowd in the foreground with hands raised, backlit. Slow, steady dolly-in toward the stage. Shallow depth of field, subtle film grain. No text, no logos, no letters, no numbers, no screens, no phones. Main subject centered so the frame can be cropped to vertical.
+
+  Opcional, para um player em modal ("o Canhoto na portaria"):
+
+  > Close-up at a concert venue entrance at night: a hand holds a smartphone showing a large plain QR code (no text on the screen) and brings it to a dark turnstile scanner with a glowing lime-green ring light (#B9F706). The ring flashes brighter as it reads the code, then the gate opens and the camera follows the person stepping forward into a crowd lit by lime-green stage lights. Dark, moody, cinematic, shallow depth of field. No readable text, no logos, no letters or numbers anywhere.
+
+- **Quando o arquivo chegar** (salvar na raiz como `janela-show-bruto.mp4`; `/*.mp4` da raiz não vai para o git):
+
+  ```bash
+  # vídeo sem som, 1080p, H.264 com faststart (começa a tocar antes de baixar inteiro); alvo < 3 MB — se passar, suba o -crf
+  ffmpeg -i janela-show-bruto.mp4 -an -vf "scale=1920:-2" -c:v libx264 -crf 27 -preset slow \
+         -movflags +faststart -pix_fmt yuv420p frontend/public/janela-show.mp4
+  # poster = primeiro quadro (é o que aparece enquanto carrega e com movimento reduzido)
+  ffmpeg -i frontend/public/janela-show.mp4 -frames:v 1 -q:v 3 frontend/public/janela-show.jpg
+  ```
+  e em `MIDIA`: `video: 'janela-show.mp4'`, `poster: 'janela-show.jpg'`.
 
 ### 9. Modo escuro
 - **Ref:** skiper26 (Theme toggle).
 - **Onde:** `styles.css` (redefinir as variáveis em `[data-tema="escuro"]`) + botão na navbar.
 - **Cuidado:** refazer as contas de contraste da rampa `tinta`/`papel` — o arquivo documenta por que cada tom passa no AA.
 
-### 10. Micro-interações globais
-- `scale(0.97)` no `:active` de `.btn` (hoje é `translate-y-px`), hovers atrás de `@media (hover: hover)`, foco visível intacto.
+### 10. Micro-interações globais  ✅ feito (2026-10-15)
+- `.btn` encolhe para 0.97 no `:active` (no celular o dedo cobre o botão e descer 1 px não se via) e a transição lista só as propriedades que mudam. Setor do evento e tipo de conta no cadastro têm o mesmo retorno de toque. Hover só com mouse já vinha do `hoverOnlyWhenSupported`.
 
 ### Descartados
 - skiper6 como vitrine de equipe (não há equipe; só a ideia do item 4 serve).
