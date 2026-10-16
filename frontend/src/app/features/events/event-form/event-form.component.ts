@@ -49,7 +49,9 @@ import { EventService } from '../event.service';
               @if (form.controls.coverImageUrl.invalid && form.controls.coverImageUrl.touched) {
                 <p class="campo-erro">Informe um endereço começando com http:// ou https://</p>
               }
-              <p class="etiqueta text-tinta-400 mt-2">
+              <!-- Frase inteira em texto corrido: em caixa alta espaçada, ajuda de
+                   duas linhas fica difícil de ler no celular. -->
+              <p class="text-xs leading-relaxed text-tinta-500 mt-2">
                 Cole o endereço de uma imagem. Deixe vazio para usar a data como capa.
               </p>
 

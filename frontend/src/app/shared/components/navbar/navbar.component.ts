@@ -13,6 +13,10 @@ const ROTAS_COM_HERO_ESCURO = ['/', ''];
   selector: 'app-navbar',
   standalone: true,
   imports: [RouterLink, RouterLinkActive],
+  // display: contents tira a caixa do <app-navbar> do layout. Sem isso o header
+  // sticky ficava preso dentro do host — que tem exatamente a altura dele — e
+  // rolava embora com a página em vez de grudar no topo.
+  host: { class: 'contents', '(document:keydown.escape)': 'fecharComEsc()' },
   template: `
     <header
       class="sticky top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300"
@@ -128,39 +132,54 @@ const ROTAS_COM_HERO_ESCURO = ['/', ''];
         </button>
       </div>
 
-      @if (aberto()) {
-        <nav id="menu-mobile" class="md:hidden border-t border-papel-300 bg-papel-50 px-6 py-2">
-          <a routerLink="/events" (click)="fechar()" class="block py-3 text-sm font-medium text-tinta-800 border-b border-papel-200">
-            Eventos
-          </a>
+    </header>
 
-          @if (auth.isLoggedIn()) {
-            @if (auth.isOrganizador()) {
-              <a routerLink="/organizer" (click)="fechar()" class="block py-3 text-sm font-medium text-tinta-800 border-b border-papel-200">
-                Painel do organizador
-              </a>
-              <a routerLink="/organizer/validate" (click)="fechar()" class="block py-3 text-sm font-medium text-tinta-800 border-b border-papel-200">
-                Portaria — validar ingresso
-              </a>
-              <a routerLink="/events/new" (click)="fechar()" class="block py-3 text-sm font-medium text-tinta-800 border-b border-papel-200">
-                Criar evento
-              </a>
+      <!--
+        Menu do celular: painel escuro de tela cheia logo abaixo da barra, com os
+        links grandes entrando em cascata. Fecha na hora (sem animação de saída):
+        quem fecha um menu já decidiu para onde vai.
+
+        Fica FORA do <header> de propósito: com a barra sólida, o header tem
+        backdrop-filter, e filtro vira a referência de posicionamento dos filhos
+        fixed — o painel ficava preso à altura da barra em vez de cobrir a tela.
+        z-[45]: acima do ingresso 3D da home (z-40), abaixo da barra (z-50).
+      -->
+      @if (aberto()) {
+        <nav id="menu-mobile" aria-label="Menu"
+             class="md:hidden fixed z-[45] inset-x-0 top-16 bottom-0 bg-tinta-900 text-papel-50 overflow-y-auto
+                    flex flex-col px-6 pt-8 pb-10 animate-[surgir_200ms_ease-out_both]">
+          <ul class="flex-1">
+            @for (item of itensMenu(); track item.rota; let i = $index) {
+              <li class="animate-entrar-baixo" [style.animation-delay.ms]="60 + i * 50">
+                <a [routerLink]="item.rota" (click)="fechar()"
+                   routerLinkActive="text-acento-500" [routerLinkActiveOptions]="{ exact: true }"
+                   class="block py-2.5 font-display text-[2.25rem] leading-tight font-semibold
+                          active:translate-x-1 transition-transform duration-150">
+                  {{ item.rotulo }}
+                </a>
+              </li>
             }
-            <a routerLink="/reservations" (click)="fechar()" class="block py-3 text-sm font-medium text-tinta-800 border-b border-papel-200">
-              Meus ingressos
-            </a>
-            <div class="py-4 flex items-center justify-between gap-3">
-              <span class="etiqueta text-tinta-400 truncate">{{ auth.currentUser()?.email }}</span>
-              <button type="button" (click)="fechar(); auth.logout()" class="btn-contorno btn-pequeno shrink-0">
+          </ul>
+
+          <div class="perfuracao opacity-40 mb-6"></div>
+          @if (auth.isLoggedIn()) {
+            <div class="flex items-center justify-between gap-3 animate-entrar-baixo"
+                 [style.animation-delay.ms]="60 + itensMenu().length * 50">
+              <span class="etiqueta text-papel-50/60 truncate">{{ auth.currentUser()?.email }}</span>
+              <button type="button" (click)="fechar(); auth.logout()"
+                      class="btn btn-pequeno border border-papel-50/40 text-papel-50 shrink-0
+                             active:bg-papel-50 active:text-tinta-900">
                 Sair
               </button>
             </div>
           } @else {
-            <a routerLink="/login" (click)="fechar()" class="btn-tinta w-full my-4">Entrar</a>
+            <a routerLink="/login" (click)="fechar()" class="btn-principal w-full py-3.5 animate-entrar-baixo"
+               [style.animation-delay.ms]="60 + itensMenu().length * 50">
+              Entrar
+            </a>
           }
         </nav>
       }
-    </header>
   `,
 })
 export class NavbarComponent implements OnInit, OnDestroy {
@@ -207,6 +226,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   ngOnDestroy(): void {
     this.inscricaoRota?.unsubscribe();
     window.removeEventListener('scroll', this.aoRolar);
+    this.travarRolagem(false);
   }
 
   /** Classes dos links, que mudam de cor conforme o fundo. */
@@ -224,12 +244,40 @@ export class NavbarComponent implements OnInit, OnDestroy {
     return this.auth.currentUser()?.name?.split(' ')[0] ?? '';
   }
 
+  /** Links do menu do celular, conforme quem está logado. */
+  readonly itensMenu = computed(() => {
+    const itens = [{ rota: '/', rotulo: 'Início' }, { rota: '/events', rotulo: 'Eventos' }];
+    if (this.auth.isLoggedIn()) {
+      if (this.auth.isOrganizador()) {
+        itens.push(
+          { rota: '/organizer', rotulo: 'Painel' },
+          { rota: '/organizer/validate', rotulo: 'Portaria' },
+          { rota: '/events/new', rotulo: 'Criar evento' },
+        );
+      }
+      itens.push({ rota: '/reservations', rotulo: 'Meus ingressos' });
+    }
+    return itens;
+  });
+
   alternar(): void {
     this.aberto.update((v) => !v);
+    this.travarRolagem(this.aberto());
   }
 
   fechar(): void {
     this.aberto.set(false);
+    this.travarRolagem(false);
+  }
+
+  fecharComEsc(): void {
+    if (this.aberto()) this.fechar();
+  }
+
+  /** Com o menu cobrindo a tela, a página de trás não deve rolar sob o dedo. */
+  private travarRolagem(travar: boolean): void {
+    if (typeof document === 'undefined') return;
+    document.documentElement.style.overflow = travar ? 'hidden' : '';
   }
 
   private readonly aoRolar = (): void => {

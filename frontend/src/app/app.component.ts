@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink, RouterOutlet } from '@angular/router';
 import { NavbarComponent } from './shared/components/navbar/navbar.component';
+import { AuthService } from './features/auth/auth.service';
 
 // Casca da aplicacao: navbar, area de rota e rodape.
 // O <router-outlet> e onde o Angular injeta o componente da rota atual.
@@ -33,7 +34,9 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
               <p class="etiqueta text-tinta-400 mb-1">Navegar</p>
               <a routerLink="/events" class="text-tinta-700 hover:text-acento-texto transition-colors">Eventos</a>
               <a routerLink="/reservations" class="text-tinta-700 hover:text-acento-texto transition-colors">Meus ingressos</a>
-              <a routerLink="/login" class="text-tinta-700 hover:text-acento-texto transition-colors">Entrar</a>
+              @if (!auth.isLoggedIn()) {
+                <a routerLink="/login" class="text-tinta-700 hover:text-acento-texto transition-colors">Entrar</a>
+              }
             </nav>
 
             <div class="max-w-xs">
@@ -55,4 +58,6 @@ import { NavbarComponent } from './shared/components/navbar/navbar.component';
     </div>
   `,
 })
-export class AppComponent {}
+export class AppComponent {
+  readonly auth = inject(AuthService);
+}

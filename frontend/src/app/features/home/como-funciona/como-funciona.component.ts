@@ -33,16 +33,17 @@ const PASSOS: readonly Passo[] = [
 ];
 
 /** Quanto um cartão encolhe e escurece quando o seguinte termina de cobri-lo. */
-const ENCOLHE = 0.06;
+/** Quanto um cartão escurece quando o seguinte termina de cobri-lo. */
 const ESCURECE = 0.2;
 
 /**
  * "Como funciona": os três passos como ingressos que se empilham ao rolar.
  *
  * <p>O empilhamento é CSS puro — cada item é {@code position: sticky} com um
- * topo um pouco maior que o anterior. Sem JavaScript, os cartões continuam se
- * empilhando; o script só acrescenta profundidade (o de baixo encolhe e
- * escurece) e o trilho de progresso ao lado.
+ * topo um pouco maior que o anterior, e todos têm a mesma altura. Sem
+ * JavaScript, os cartões continuam se empilhando; o script só escurece o de
+ * baixo e acende os números (trilho no desktop, faixa no celular, e o número
+ * de cada cartão) conforme a pessoa avança.
  *
  * <p>As contas são feitas relativas à janela a cada quadro, a partir de uma
  * única leitura de posição da lista. Guardar posições absolutas da página
@@ -63,22 +64,18 @@ const ESCURECE = 0.2;
             <p class="text-tinta-600 leading-relaxed mb-10 lg:mb-12 text-pretty">Do celular à portaria em três passos.</p>
 
             <!--
-              Trilho: repete os passos que os cartões já dizem, então fica fora
-              do leitor de tela. É só um "você está aqui" visual.
+              Trilho (desktop): repete os passos que os cartões já dizem, então
+              fica fora do leitor de tela. É só um "você está aqui" visual: a
+              perfuração enche de verde e os números acendem conforme a rolagem.
             -->
             <ol class="hidden lg:block relative" aria-hidden="true">
               <span class="perfuracao-vertical absolute left-[15px] top-7 bottom-7"></span>
-              <span data-trilho-progresso
+              <span data-progresso="y"
                     class="absolute left-[15px] top-7 bottom-7 w-[3px] bg-acento-500 origin-top scale-y-0"></span>
               @for (passo of passos; track passo.numero; let i = $index) {
-                <li data-marco [attr.data-feito]="i === 0" [attr.data-atual]="i === 0"
+                <li [attr.data-passo]="i" [attr.data-feito]="i === 0" [attr.data-atual]="i === 0"
                     class="group relative flex items-center gap-4 py-3">
-                  <span class="numero relative grid place-items-center w-[33px] h-[33px] shrink-0 border text-xs font-bold
-                               bg-papel-100 border-papel-400 text-tinta-500 transition-colors duration-200
-                               group-data-[feito=true]:bg-acento-500 group-data-[feito=true]:border-acento-600
-                               group-data-[feito=true]:text-tinta-900">
-                    {{ passo.numero }}
-                  </span>
+                  <span class="numero-passo relative">{{ passo.numero }}</span>
                   <span class="text-sm text-tinta-500 transition-colors duration-200
                                group-data-[atual=true]:text-tinta-900 group-data-[atual=true]:font-semibold">
                     {{ passo.titulo }}
@@ -93,39 +90,62 @@ const ESCURECE = 0.2;
           </div>
         </div>
 
-        <!--
-          A pilha. --i sobe o topo de cada cartão um pouco além do anterior: é o
-          que deixa a borda dos de baixo aparecendo, como ingressos num maço.
-          A margem inferior é o trecho de rolagem que cada passo fica sozinho
-          na tela antes de o seguinte chegar.
-        -->
-        <ol data-pilha>
-          @for (passo of passos; track passo.numero; let i = $index) {
-            <li class="sticky top-[calc(5rem_+_var(--i)_*_0.75rem)] lg:top-[calc(7rem_+_var(--i)_*_1.5rem)]
-                       mb-[18vh] last:mb-0"
-                [style.--i]="i">
-              <article data-cartao
-                       class="bilhete bilhete-passo overflow-hidden flex flex-col md:flex-row md:h-[22rem]
-                              border border-papel-300 origin-top"
-                       style="--recorte-y: 13rem">
-                <img [src]="passo.imagem" [alt]="passo.alt" loading="lazy" decoding="async"
-                     class="w-full h-52 md:h-full md:w-[62%] shrink-0 object-cover" />
+        <div>
+          <!--
+            Faixa de progresso (celular e tablet): o mesmo trilho, deitado e
+            grudado no topo enquanto os cartões passam. Dentro deste bloco para
+            grudar só durante a pilha, não depois dela.
+          -->
+          <div class="lg:hidden sticky top-16 z-20 -mx-6 px-6 py-3 mb-5 bg-papel-200 border-b border-papel-300"
+               aria-hidden="true">
+            <ol class="relative flex items-center justify-between max-w-xs">
+              <span class="perfuracao absolute left-4 right-4 top-1/2 -translate-y-1/2"></span>
+              <span data-progresso="x"
+                    class="absolute left-4 right-4 top-1/2 h-[3px] -translate-y-1/2 bg-acento-500 origin-left scale-x-0"></span>
+              @for (passo of passos; track passo.numero; let i = $index) {
+                <li [attr.data-passo]="i" [attr.data-feito]="i === 0" [attr.data-atual]="i === 0" class="relative">
+                  <span class="numero-passo">{{ passo.numero }}</span>
+                </li>
+              }
+            </ol>
+          </div>
 
-                <div class="perfuracao md:hidden"></div>
-                <div class="perfuracao-vertical hidden md:block"></div>
+          <!--
+            A pilha. Todos os cartões têm a mesma altura e a mesma largura, e cada
+            um gruda um pouco abaixo do anterior (--i): o maço fica alinhado, com
+            só a borda de cima dos de trás aparecendo. A margem inferior é o
+            trecho de rolagem em que cada passo fica sozinho antes do próximo.
+          -->
+          <ol data-pilha>
+            @for (passo of passos; track passo.numero; let i = $index) {
+              <li [attr.data-passo]="i" [attr.data-feito]="i === 0" [attr.data-atual]="i === 0"
+                  class="sticky rounded-bilhete mb-[18vh] last:mb-0
+                         top-[calc(8rem_+_var(--i)_*_0.75rem)] lg:top-[calc(7rem_+_var(--i)_*_1rem)]"
+                  [class.sombra-maco]="i > 0"
+                  [style.--i]="i">
+                <article data-cartao
+                         class="bilhete bilhete-passo overflow-hidden flex flex-col h-[25rem] md:h-[22rem] md:flex-row
+                                border border-papel-300"
+                         style="--recorte-y: 10rem">
+                  <img [src]="passo.imagem" [alt]="passo.alt" loading="lazy" decoding="async"
+                       class="w-full h-40 md:h-full md:w-[62%] shrink-0 object-cover" />
 
-                <div class="flex-1 flex flex-col p-6 md:p-8">
-                  <p class="mb-5"><span class="marcado numero text-base font-bold">{{ passo.numero }}</span></p>
-                  <h3 class="text-titulo-md font-semibold text-tinta-900 mb-3 md:mt-auto">{{ passo.titulo }}</h3>
-                  <p class="text-[0.9375rem] leading-relaxed text-tinta-600">{{ passo.texto }}</p>
-                </div>
+                  <div class="perfuracao md:hidden"></div>
+                  <div class="perfuracao-vertical hidden md:block"></div>
 
-                <div data-sombra class="absolute inset-0 bg-tinta-900 opacity-0 pointer-events-none"
-                     aria-hidden="true"></div>
-              </article>
-            </li>
-          }
-        </ol>
+                  <div class="flex-1 min-h-0 flex flex-col p-6 md:p-8">
+                    <p class="mb-4 md:mb-5"><span class="numero-passo">{{ passo.numero }}</span></p>
+                    <h3 class="text-titulo-md font-semibold text-tinta-900 mb-2 md:mb-3 md:mt-auto">{{ passo.titulo }}</h3>
+                    <p class="text-[0.9375rem] leading-relaxed text-tinta-600">{{ passo.texto }}</p>
+                  </div>
+
+                  <div data-sombra class="absolute inset-0 bg-tinta-900 opacity-0 pointer-events-none"
+                       aria-hidden="true"></div>
+                </article>
+              </li>
+            }
+          </ol>
+        </div>
       </div>
     </section>
   `,
@@ -155,13 +175,11 @@ export class ComoFuncionaComponent implements OnDestroy {
     if (!lista) return;
 
     const itens = Array.from(lista.children) as HTMLElement[];
-    const cartoes = itens.map((li) => li.querySelector<HTMLElement>('[data-cartao]')!);
     const sombras = itens.map((li) => li.querySelector<HTMLElement>('[data-sombra]')!);
-    const marcos = Array.from(raiz.querySelectorAll<HTMLElement>('[data-marco]'));
-    const progresso = raiz.querySelector<HTMLElement>('[data-trilho-progresso]');
-    // Com movimento reduzido o cartão não encolhe; escurecer e o trilho ficam,
-    // porque informam onde a pessoa está e não deslocam nada.
-    const reduzido = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    // Tudo que mostra "em que passo estou": os itens do trilho, os da faixa do
+    // celular e os próprios cartões (o número de cada um acende junto).
+    const marcos = Array.from(raiz.querySelectorAll<HTMLElement>('[data-passo]'));
+    const progressos = Array.from(raiz.querySelectorAll<HTMLElement>('[data-progresso]'));
 
     // Posição de cada item dentro da lista como se nada estivesse grudado.
     // offsetTop de um elemento sticky já vem com o deslocamento do sticky, então
@@ -195,31 +213,36 @@ export class ComoFuncionaComponent implements OnDestroy {
         return limitar((encosta - posicao) / Math.max(encosta - topos[i], 1));
       });
 
-      cartoes.forEach((cartao, i) => {
-        const cobertura = chegada[i + 1] ?? 0;
-        if (!reduzido) {
-          cartao.style.transform = cobertura > 0 ? `scale(${(1 - ENCOLHE * cobertura).toFixed(4)})` : '';
-        }
-        sombras[i].style.opacity = (ESCURECE * cobertura).toFixed(3);
+      // O de baixo só escurece — não encolhe. Encolher deixava os cartões de trás
+      // mais estreitos que o da frente e o maço parecia torto.
+      sombras.forEach((sombra, i) => {
+        sombra.style.opacity = (ESCURECE * (chegada[i + 1] ?? 0)).toFixed(3);
       });
 
-      if (progresso) {
-        const ultimo = itens.length - 1;
-        const inicio = topoLista + naturais[0] - topos[0];
-        const fim = topoLista + naturais[ultimo] - topos[ultimo];
-        // inicio e fim são distâncias até grudar; percorre de 0 a 1 entre o
-        // primeiro e o último cartão grudarem.
-        const fracao = limitar(inicio / Math.min(inicio - fim, -1));
-        progresso.style.transform = `scaleY(${fracao.toFixed(4)})`;
-      }
+      const ultimo = itens.length - 1;
+      const inicio = topoLista + naturais[0] - topos[0];
+      const fim = topoLista + naturais[ultimo] - topos[ultimo];
+      // inicio e fim são distâncias até grudar; a perfuração enche de 0 a 1
+      // entre o primeiro e o último cartão grudarem.
+      const fracao = limitar(inicio / Math.min(inicio - fim, -1)).toFixed(4);
+      progressos.forEach((p) => {
+        p.style.transform = p.dataset['progresso'] === 'x' ? `scaleX(${fracao})` : `scaleY(${fracao})`;
+      });
 
       // O passo atual é o último cujo cartão já cobriu mais da metade do anterior.
+      // Só mexe nos atributos quando ele muda: reescrever o mesmo valor a cada
+      // quadro faria o navegador recalcular estilos à toa.
       const atual = chegada.reduce((ultimoVisto, c, i) => (c >= 0.6 ? i : ultimoVisto), 0);
-      marcos.forEach((marco, i) => {
-        marco.dataset['feito'] = String(i <= atual);
-        marco.dataset['atual'] = String(i === atual);
-      });
+      if (atual !== atualAplicado) {
+        atualAplicado = atual;
+        marcos.forEach((marco) => {
+          const passo = Number(marco.dataset['passo']);
+          marco.dataset['feito'] = String(passo <= atual);
+          marco.dataset['atual'] = String(passo === atual);
+        });
+      }
     };
+    let atualAplicado = 0;
 
     // Mesmo esquema da ParalaxeDirective: um cálculo por quadro, só enquanto a
     // seção está na tela.
