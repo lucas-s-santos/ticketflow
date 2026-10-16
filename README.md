@@ -176,7 +176,7 @@ npm start
 
 A cada push/PR, o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda:
 - **Backend:** sobe Postgres + RabbitMQ como service containers e executa `mvn -B verify` — incluindo os testes de integração (concorrência de reservas, idempotência de pagamento) e os unitários (assinatura de webhook e de ingresso).
-- **Frontend:** `npm ci` + suite de testes em Chrome headless + build de produção.
+- **Frontend:** `npm ci` + suíte de testes (Vitest, em jsdom — não precisa de navegador) + build de produção.
   Os specs ficam fora do build, então rodar só o build deixaria passar um teste quebrado.
 
 ---

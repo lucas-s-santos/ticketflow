@@ -86,10 +86,10 @@ jobs:
         run: npm ci
 
       # Os specs ficam fora do build de producao, entao so o build nao pegaria
-      # um teste quebrado. Rodamos a suite explicitamente, em Chrome headless.
+      # um teste quebrado. Rodamos a suite explicitamente (Vitest em jsdom).
       - name: Testes unitários
         working-directory: frontend
-        run: npm test -- --watch=false --browsers=ChromeHeadless
+        run: npm test -- --watch=false
 
       - name: Build de produção
         working-directory: frontend
