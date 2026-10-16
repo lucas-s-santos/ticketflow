@@ -11,6 +11,7 @@ public record EventStatsDto(
         OffsetDateTime date,
         int totalCapacity,
         int totalSold,
+        int totalCheckedIn,
         BigDecimal revenue,
         List<SectorStatsDto> sectors
 ) {}

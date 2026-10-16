@@ -6,6 +6,7 @@ import java.util.List;
 public record OrganizerDashboardDto(
         long totalEvents,
         long totalTicketsSold,
+        long totalCheckedIn,
         BigDecimal totalRevenue,
         List<EventStatsDto> events
 ) {}

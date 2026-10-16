@@ -37,13 +37,13 @@ junto com seis eventos e seus setores:
 
 ## 📸 Telas
 
-> _Substitua os placeholders abaixo por capturas reais — `docs/marca/` já guarda os
-> arquivos de identidade. Um GIF curto do roteiro acima vale mais do que qualquer
-> parágrafo deste README._
+<img src="docs/telas/home.jpg" alt="Home do Canhoto: título 'O lugar é seu no instante do clique' e o ingresso 3D girando sob um refletor verde" width="100%">
 
 | Lista de eventos | Ingresso com QR code | Painel do organizador |
 |---|---|---|
-| _(screenshot)_ | _(screenshot)_ | _(screenshot)_ |
+| <img src="docs/telas/eventos.jpg" alt="Lista de eventos com o destaque em banner, busca e filtros por data"> | <img src="docs/telas/ingresso.jpg" alt="Carteira do cliente com o ingresso válido aberto e o QR code à vista"> | <img src="docs/telas/painel.jpg" alt="Painel do organizador com eventos, ingressos vendidos, receita e taxa de check-in"> |
+
+> Capturas do sistema rodando localmente com os dados de demonstração.
 
 ---
 
@@ -184,6 +184,13 @@ powershell -ExecutionPolicy Bypass -File .\scripts\subir-sem-docker.ps1
   contabilizados, e tentar remover um setor com reservas devolve `409` com a explicação —
   em vez do erro de chave estrangeira que o banco levantaria.
 - **Schema versionado:** todo o banco é gerenciado por migrations Flyway; o Hibernate roda em modo `validate` e nunca altera o schema.
+- **Check-in de uso único:** o QR é assinado com HMAC e marcado como usado na primeira leitura; a
+  segunda é recusada (`ALREADY_USED`), e só o organizador do evento dá entrada nele. O painel mostra
+  a taxa de check-in por evento. Coberto por `PortariaTest`.
+- **Segurança em camadas:** CSP e headers de segurança no front, guardas de rota testadas, token
+  vencido ou adulterado tratado como anônimo (sem derrubar rota pública), limites de tamanho na
+  entrada e dependências em versões com suporte (Angular 21, Spring Boot 3.5) — `npm audit` sem
+  nenhuma vulnerabilidade no que vai para o navegador.
 
 ---
 
