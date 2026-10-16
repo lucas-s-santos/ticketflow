@@ -271,7 +271,7 @@ export class EventDetailComponent implements OnInit {
   // durante a navegação, por isso é lido aqui, na construção do componente.
   // Entrando por link direto ou recarregando a página, não há estado: o banner
   // espera a API.
-  private readonly estadoDaLista = inject(Router).getCurrentNavigation()?.extras.state as
+  private readonly estadoDaLista = inject(Router).currentNavigation()?.extras.state as
     { capa?: string | null; nome?: string } | undefined;
   readonly nomeInicial = signal(this.estadoDaLista?.nome ?? '');
 

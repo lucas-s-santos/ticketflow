@@ -52,7 +52,7 @@ junto com seis eventos e seus setores:
 | Camada | Tecnologia |
 |---|---|
 | **Backend** | Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA, Spring AMQP |
-| **Frontend** | Angular 18 (standalone components + Signals), Tailwind CSS |
+| **Frontend** | Angular 21 (standalone components + Signals), Tailwind CSS |
 | **Banco** | PostgreSQL 16 (schema versionado com Flyway) |
 | **Mensageria** | RabbitMQ 3.13 |
 | **Auth** | JWT (JJWT), BCrypt, autorização por papéis |
@@ -114,7 +114,7 @@ sequenceDiagram
 ## 🚀 Rodando localmente
 
 ### Pré-requisitos
-- Java 21, Node 18+, Docker Desktop
+- Java 21, Node 24 (versão fixada no `engines` do `frontend/package.json`), Docker Desktop
 
 ### 1. Subir a infraestrutura
 ```bash
