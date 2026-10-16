@@ -1,6 +1,6 @@
 # Redesign visual do Canhoto — estado e próximos passos
 
-> Documento de continuação. Escrito em 2026-10-14 e atualizado em 2026-10-15,
+> Documento de continuação. Escrito em 2026-10-14 e atualizado em 2026-10-16,
 > para retomar o trabalho em outro computador, por uma pessoa ou por uma sessão
 > nova do Claude Code. Leia a seção 1 e a 5 antes de mexer em qualquer coisa.
 
@@ -14,10 +14,15 @@ inspora (seção 4).
 
 ## 1. Onde paramos
 
-- **Branch:** `feature/canhoto-rebrand-e-correcoes` (já no GitHub).
+- **Branches (2026-10-16):** o redesign está em `feature/canhoto-rebrand-e-correcoes`;
+  em cima dele, empilhados: `fix/angular-21` (segurança do front + Angular 21),
+  `fix/seguranca-backend` (JWT, Spring Boot 3.5, Vitest) e `feature/efeitos-e-informacoes`
+  (seção "Efeitos e informações", abaixo). Todos no GitHub.
 - **Feito:** o ingresso 3D viajando pela home, com a janela para o show e o rasgo
   (seção 3); itens 1 a 4 do roteiro, o banner do item 5 e a transição entre
   páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
+  Em 2026-10-16: efeitos de hover no sistema, seções "Por dentro" e "Em cartaz" na
+  home e painel com foto no login e no cadastro (seção 6, "Efeitos e informações").
 - **Revisão de celular (2026-10-15):** todas as telas auditadas em 390×844 (script
   de auditoria na seção 7); nenhuma rola para o lado.
 - **Próximo:** regerar o vídeo da catraca (prompt corrigido no item 8) e decidir o
@@ -250,6 +255,30 @@ completa leva minutos para fotografar).
 
 ### 10. Micro-interações globais  ✅ feito (2026-10-15)
 - `.btn` encolhe para 0.97 no `:active` (no celular o dedo cobre o botão e descer 1 px não se via) e a transição lista só as propriedades que mudam. Setor do evento e tipo de conta no cadastro têm o mesmo retorno de toque. Hover só com mouse já vinha do `hoverOnlyWhenSupported`.
+
+### Novo — Efeitos e informações  ✅ feito (2026-10-16)
+Pedido do Lucas: mais imagens e informação sobre o sistema, efeitos de hover e
+coisas que chamem atenção. Tudo segue a seção 5 — hover só com mouse, só
+`transform`/`opacity` no que se move, versão parada com movimento reduzido.
+
+- **Diretivas novas** em `shared/directives/`:
+  - `appInclinar` — o cartão inclina seguindo o mouse e um reflexo (`.reflexo`) anda junto. `[inclinacao]="0"` deixa só o reflexo (o "holofote" dos cartões escuros), `brilho="acento"` o deixa verde.
+  - `appMagnetico` — CTA puxado de leve na direção do cursor. Escreve na propriedade CSS `translate`, não em `transform`, para não brigar com o `scale(0.97)` do `:active`. Só nas chamadas principais (hero, "Começar pelos eventos", "Ver todos os eventos").
+  - `appDemonstrar` — liga `.em-cena` quando o elemento aparece (uma vez) e religa a cada entrada do mouse. As animações são keyframes presos a `.em-cena`.
+  - `appContagem` ganhou `[quandoVisivel]`: espera aparecer para contar.
+- **Globais (`styles.css`):** brilho atravessando `.btn-principal`/`.btn-tinta` no hover; `.link-traco` (traço verde que se desenha) nos links da navbar e do rodapé.
+- **Home, depois de "Por que Canhoto?"** — e não entre as seções da viagem do ingresso: entre duas paradas ele atravessa o conteúdo (seção 3).
+  - `por-dentro/` — seção escura "O que acontece por trás do clique": marca-texto que se desenha no título, três números que contam e quatro garantias com mini-demonstração (sem sobrevenda, cobrança única, segundo plano, uso único). O selo "Testado" só aparece onde existe teste no backend — a recusa do segundo uso na portaria ainda não tem.
+  - `em-cartaz/` — os três próximos eventos (a mesma busca da marquise), com inclinação, zoom na foto e a capa voando até o detalhe (mesmo `[state]` e `view-transition-name` da lista). Some sem eventos.
+- **Login e cadastro:** `features/auth/painel-conta/` — no desktop, foto e benefícios à esquerda (`janela-show.jpg` no login, `passo-comprar.jpg` no cadastro). No celular só o formulário, e a foto nem baixa.
+- **Armadilhas:**
+  - Nas demonstrações, o **estado final é o estilo base** e os keyframes usam fill `both`: sem script cada uma aparece completa, e com `.em-cena` volta ao começo durante o atraso.
+  - A regra global de movimento reduzido zera a **duração**, não o **atraso** — sem um `animation: none` próprio, uma demo com 1,5 s de atraso ficava vazia e depois aparecia de uma vez.
+  - Dois keyframes no mesmo elemento mexendo em `opacity`: o segundo precisa de fill `forwards`, não `both`, senão aplica o próprio início por cima do primeiro durante o atraso.
+  - `acender` e `surgir` já existiam como keyframes; os novos têm prefixo `demo-`.
+  - Fotos com texto embutido (`secao-ingresso.jpg` tem "Seu momento.", `og-canhoto.jpg` tem slogan) brigam com o título do painel — por isso o cadastro usa `passo-comprar.jpg`.
+  - Capturar a passagem do brilho no Chrome headless falha (a transição acaba antes do print); para conferir, injete uma duração longa só no navegador de teste.
+- **API simulada para capturas:** sem backend, as telas de eventos ficam em estado de erro. Em `page.setRequestInterception(true)` dá para responder `localhost:8080/api/events` com os dados da V7/V8 e fotografar lista, vitrine e detalhe com conteúdo.
 
 ### Descartados
 - skiper6 como vitrine de equipe (não há equipe; só a ideia do item 4 serve).
