@@ -2,7 +2,6 @@ import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { RevelarDirective } from '../../../shared/directives/revelar.directive';
 import { Subject, Subscription, debounceTime } from 'rxjs';
 import { EventService } from '../event.service';
 import { EventFilters, EventResponse } from '../event.model';
@@ -15,10 +14,13 @@ type Periodo = 'todos' | 'semana' | 'mes';
 // leva ~50s. Sem o aviso, a tela parece travada e a pessoa fecha a aba.
 const AVISO_HIBERNACAO_MS = 3000;
 
+/** Cartões por linha no desktop. */
+const POR_LINHA = 3;
+
 @Component({
   selector: 'app-events-list',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, FormsModule, RevelarDirective],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, FormsModule],
   template: `
     <div class="max-w-6xl mx-auto px-6 py-12 md:py-16">
 
@@ -145,92 +147,84 @@ const AVISO_HIBERNACAO_MS = 3000;
 
       } @else {
 
-        <!-- ================= DESTAQUE ================= -->
+        <!--
+          ================= DESTAQUE =================
+          A foto de ponta a ponta: sai do container e ocupa a largura da janela
+          (o <main> corta o transbordo lateral com overflow-x: clip). O preço vai
+          num canhoto pequeno no canto, como o pedaço destacável do ingresso.
+        -->
         @if (destaque(); as ev) {
-          <!-- 4 colunas no desktop: capa | corpo | perfuracao | canhoto.
-               A perfuracao horizontal e a vertical se alternam por breakpoint,
-               e so uma delas conta como item da grade em cada tamanho. -->
-          <a [routerLink]="['/events', ev.id]"
-             class="bilhete bilhete-deitado group block mb-8 overflow-hidden hover:shadow-papel-alta
-                    transition-shadow animate-entrar-baixo
-                    lg:grid lg:grid-cols-[19rem_1fr_3px_13rem] lg:items-stretch"
-             style="--recorte-x: calc(100% - 13rem)">
-
-            <!-- Capa -->
-            <div class="relative h-56 lg:h-full bg-papel-200 overflow-hidden">
-              @if (ev.coverImageUrl) {
-                <img [src]="ev.coverImageUrl" [alt]="'Imagem de ' + ev.name"
-                     loading="lazy" decoding="async"
-                     class="w-full h-full object-cover saturate-[0.92] group-hover:saturate-100
-                            group-hover:scale-[1.03] transition-all duration-500" />
-              } @else {
-                <div class="w-full h-full grid place-items-center bg-tinta-900">
-                  <span class="numero text-titulo-xl font-bold text-acento-500 leading-none">
-                    {{ ev.date | date:'dd' }}
-                  </span>
-                </div>
-              }
-              <span class="absolute top-4 left-4 etiqueta bg-acento-500 text-tinta-900 px-2 py-1">
-                Destaque
-              </span>
-            </div>
-
-            <!-- Corpo -->
-            <div class="px-7 py-6 lg:py-8">
-              <div class="flex items-baseline gap-2.5 mb-3">
-                <span class="numero text-3xl font-bold leading-none text-tinta-900">
-                  {{ ev.date | date:'dd' }}
-                </span>
-                <span class="etiqueta text-acento-texto">
-                  {{ ev.date | date:'MMM':undefined:'pt-BR' | uppercase }}
-                </span>
-                <span class="etiqueta text-tinta-400">
-                  {{ ev.date | date:'EEE, HH:mm':undefined:'pt-BR' }}
-                </span>
+          <a [routerLink]="['/events', ev.id]" [state]="{ capa: ev.coverImageUrl, nome: ev.name }"
+             (click)="nomearCapa($event)"
+             class="group relative isolate block mb-12 overflow-hidden bg-tinta-900 animate-entrar-baixo
+                    mx-[calc(50%-50vw)] h-[28rem] md:h-[34rem]">
+            @if (ev.coverImageUrl) {
+              <div data-capa class="absolute inset-0 overflow-hidden">
+                <img [src]="ev.coverImageUrl" [alt]="'Imagem de ' + ev.name" decoding="async"
+                     class="w-full h-full object-cover transition-transform duration-[900ms]
+                            ease-[cubic-bezier(0.23,1,0.32,1)] group-hover:scale-[1.03]" />
               </div>
+            }
+            <!-- Véu: o texto em papel precisa de fundo escuro em qualquer foto. -->
+            <div class="absolute inset-0 bg-gradient-to-t from-tinta-900 via-tinta-900/50 to-tinta-900/5"
+                 aria-hidden="true"></div>
 
-              <h2 class="font-display text-titulo-md font-semibold text-tinta-900 mb-2 leading-tight">
-                {{ ev.name }}
-              </h2>
-              <p class="text-sm text-tinta-500 mb-4">{{ ev.location }}</p>
-              @if (ev.description) {
-                <p class="text-sm leading-relaxed text-tinta-600 linhas-2 max-w-xl">{{ ev.description }}</p>
-              }
-            </div>
-
-            <!-- Separador -->
-            <div class="perfuracao lg:hidden"></div>
-            <div class="hidden lg:block perfuracao-vertical"></div>
-
-            <!-- Canhoto: preco -->
-            <div class="px-7 py-6 lg:py-8 flex lg:flex-col lg:justify-center items-center lg:items-start justify-between gap-2">
-              @if (esgotado(ev)) {
-                <span class="selo-neutro">Esgotado</span>
-              } @else {
-                <div>
-                  <p class="etiqueta text-tinta-400 mb-1.5">A partir de</p>
-                  <p class="numero text-2xl font-bold text-acento-texto">
-                    {{ menorPreco(ev) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-                  </p>
+            <div class="absolute inset-x-0 bottom-0">
+              <div class="max-w-6xl mx-auto px-6 pb-8 md:pb-12 flex flex-wrap items-end justify-between gap-6">
+                <div class="max-w-2xl">
+                  <span class="etiqueta bg-acento-500 text-tinta-900 px-2 py-1 inline-block mb-5">Destaque</span>
+                  <div class="flex items-baseline gap-2.5 mb-3">
+                    <span class="numero text-3xl font-bold leading-none text-papel-50">
+                      {{ ev.date | date:'dd' }}
+                    </span>
+                    <span class="etiqueta text-acento-500">
+                      {{ ev.date | date:'MMM':undefined:'pt-BR' | uppercase }}
+                    </span>
+                    <span class="etiqueta text-papel-300">
+                      {{ ev.date | date:'EEE, HH:mm':undefined:'pt-BR' }}
+                    </span>
+                  </div>
+                  <h2 class="text-titulo-lg font-semibold text-papel-50 mb-2">{{ ev.name }}</h2>
+                  <p class="text-papel-300">{{ ev.location }}</p>
                 </div>
-              }
-              <span class="etiqueta text-tinta-400 lg:mt-4">{{ vagasTexto(ev) }}</span>
+
+                <div class="bilhete px-6 py-4 shrink-0" style="--recorte-y: 50%">
+                  @if (esgotado(ev)) {
+                    <span class="selo-neutro">Esgotado</span>
+                  } @else {
+                    <p class="etiqueta text-tinta-400 mb-1.5">A partir de</p>
+                    <p class="numero text-2xl font-bold text-acento-texto">
+                      {{ menorPreco(ev) | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                    </p>
+                  }
+                  <p class="etiqueta text-tinta-400 mt-2">{{ vagasTexto(ev) }}</p>
+                </div>
+              </div>
             </div>
           </a>
         }
 
-        <!-- ================= DEMAIS ================= -->
-        <div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          @for (ev of restantes(); track ev.id; let i = $index) {
-            <!-- O atraso e limitado a 6 posicoes: escalonar 30 cartoes faria o
-                 ultimo aparecer quase dois segundos depois do primeiro. -->
-            <a appRevelar [atraso]="(i % 6) * 70" [routerLink]="['/events', ev.id]"
+        <!--
+          ================= DEMAIS =================
+          No desktop, linhas de três em que o cartão sob o mouse (ou com foco)
+          cresce e os vizinhos cedem espaço — a foto ganha largura sem a página
+          mudar de altura. Abaixo de lg, display: contents desfaz as linhas e os
+          cartões caem numa grade comum. Linha incompleta ganha espaçadores para
+          um cartão sozinho não esticar até a largura toda.
+        -->
+        <div class="grid gap-6 md:grid-cols-2 lg:block">
+          @for (linha of linhas(); track $index) {
+            <div class="contents lg:flex lg:gap-6 lg:mb-6">
+              @for (ev of linha; track ev.id) {
+            <a [routerLink]="['/events', ev.id]" [state]="{ capa: ev.coverImageUrl, nome: ev.name }"
+               (click)="nomearCapa($event)"
                class="bilhete group flex flex-col overflow-hidden hover:shadow-papel-alta
-                      hover:-translate-y-0.5 transition-all duration-200"
+                      lg:basis-0 lg:grow lg:min-w-0 lg:hover:grow-[1.7] lg:focus-visible:grow-[1.7]
+                      transition-[flex-grow,box-shadow] duration-500 ease-[cubic-bezier(0.23,1,0.32,1)]"
                style="--recorte-y: calc(100% - 5.5rem)">
 
               <!-- Capa -->
-              <div class="relative h-44 bg-papel-200 overflow-hidden shrink-0">
+              <div data-capa class="relative h-56 bg-papel-200 overflow-hidden shrink-0">
                 @if (ev.coverImageUrl) {
                   <img [src]="ev.coverImageUrl" [alt]="'Imagem de ' + ev.name"
                        loading="lazy" decoding="async"
@@ -286,6 +280,11 @@ const AVISO_HIBERNACAO_MS = 3000;
                 <span class="etiqueta text-tinta-400 text-right">{{ vagasTexto(ev) }}</span>
               </div>
             </a>
+              }
+              @for (vazio of espacadores(linha); track $index) {
+                <div class="hidden lg:block lg:basis-0 lg:grow" aria-hidden="true"></div>
+              }
+            </div>
           }
         </div>
 
@@ -318,6 +317,34 @@ export class EventsListComponent implements OnInit, OnDestroy {
   // listagem parecer resultado de query em vez de curadoria.
   readonly destaque = computed(() => this.eventos()[0]);
   readonly restantes = computed(() => this.eventos().slice(1));
+
+  /** Os demais em linhas de três: no desktop cada linha é um acordeão de cartões. */
+  readonly linhas = computed(() => {
+    const lista = this.restantes();
+    const linhas: EventResponse[][] = [];
+    for (let i = 0; i < lista.length; i += POR_LINHA) {
+      linhas.push(lista.slice(i, i + POR_LINHA));
+    }
+    return linhas;
+  });
+
+  espacadores(linha: EventResponse[]): number[] {
+    return Array.from({ length: POR_LINHA - linha.length });
+  }
+
+  /**
+   * Marca a capa do cartão clicado para a transição entre páginas: a foto
+   * "voa" até virar o banner do detalhe, que tem o mesmo view-transition-name.
+   * Só a clicada recebe o nome — dois elementos com o mesmo nome na tela
+   * cancelam a transição, e nomear todas faria o navegador fotografar cada uma.
+   */
+  nomearCapa(evento: MouseEvent): void {
+    const link = evento.currentTarget as HTMLElement;
+    document.querySelectorAll<HTMLElement>('[data-capa]').forEach((el) => {
+      el.style.removeProperty('view-transition-name');
+    });
+    link.querySelector<HTMLElement>('[data-capa]')?.style.setProperty('view-transition-name', 'capa-evento');
+  }
 
   readonly termo = signal('');
   readonly periodo = signal<Periodo>('todos');

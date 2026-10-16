@@ -137,6 +137,22 @@
     mask-composite: intersect;
   }
 
+  /* Variante que muda de forma com a tela: em pé no celular (mordidas nas
+     laterais, na altura de --recorte-y) e deitada a partir de md (mordidas no
+     topo e na base, em --recorte-x). Usada junto com .bilhete nos passos do
+     "Como funciona". O seletor duplo vence o .bilhete sem !important. */
+  @media (min-width: 768px) {
+    .bilhete.bilhete-passo {
+      --recorte-x: 62%;
+      -webkit-mask-image:
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+      mask-image:
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) top, transparent 98%, #000 100%),
+        radial-gradient(circle var(--recorte-r) at var(--recorte-x) bottom, transparent 98%, #000 100%);
+    }
+  }
+
   /* Linha pontilhada onde o canhoto se destaca do corpo do ingresso.
      Escrito em CSS puro: como imagem e tamanho de fundo compartilham o prefixo
      bg-* no Tailwind, registrar os dois no tema criaria classes colidentes. */
@@ -189,6 +205,47 @@
     }
   }
 
+  /* Número de passo do "Como funciona" (trilho, faixa do celular e cartão).
+     Apagado até a pessoa chegar no passo; aí acende em verde, e o passo atual
+     ainda brilha e dá um pulo curto. O estado vem de data-feito/data-atual num
+     ancestral, que o script atualiza conforme a rolagem. */
+  .numero-passo {
+    @apply numero grid place-items-center w-[33px] h-[33px] shrink-0 border text-xs font-bold
+           bg-papel-100 border-papel-400 text-tinta-500;
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease, box-shadow 300ms ease;
+  }
+  [data-feito='true'] .numero-passo {
+    @apply bg-acento-500 border-acento-600 text-tinta-900;
+  }
+  [data-atual='true'] .numero-passo {
+    box-shadow: 0 0 0 4px rgb(var(--acento-500) / 0.22), 0 0 22px rgb(var(--acento-500) / 0.55);
+    animation: acender 520ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  @keyframes acender {
+    0% { transform: scale(0.9); }
+    45% { transform: scale(1.14); }
+    100% { transform: scale(1); }
+  }
+
+  /* Barra de ocupação do painel: cresce da esquerda (o componente troca o
+     scaleX de 0 para o valor logo depois da carga). */
+  .barra-ocupacao {
+    @apply h-full w-full bg-acento-500 origin-left;
+    transition: transform 900ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  /* Painel que aparece sem se deslocar (o menu do celular). */
+  @keyframes surgir {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  /* Sombra curta para cima: cada ingresso do maço da carteira parece pousado
+     sobre o anterior. Para cima porque é o de cima que cobre o de baixo. */
+  .sombra-maco {
+    box-shadow: 0 -6px 14px -8px rgb(var(--tinta-900) / 0.22);
+  }
+
   /* Regua fina: separador editorial */
   .regua {
     @apply h-px w-full bg-papel-300;
@@ -220,22 +277,29 @@
   }
 
   /* -------------------------------------------------------------------------
-     BOTOES — retangulares, com deslocamento tatil no clique.
+     BOTOES — retangulares, que afundam de leve no toque.
      O primario e verde da marca com texto PRETO (14:1). Texto branco sobre
      esse verde daria 1.24 e seria ilegivel.
+
+     scale(0.97) no :active em vez de descer 1px: no celular o dedo cobre o
+     botao e um deslocamento de 1px nao se ve; o encolhimento se percebe na
+     borda. Transicao so das propriedades que mudam — "all" animaria tambem
+     largura e padding se algum dia mudassem.
      ------------------------------------------------------------------------- */
   .btn {
     @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold
-           transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none;
+           active:scale-[0.97] disabled:opacity-40 disabled:pointer-events-none;
+    transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1), background-color 150ms ease,
+                color 150ms ease, border-color 150ms ease, opacity 150ms ease;
   }
   .btn-principal {
-    @apply btn bg-acento-500 text-tinta-900 hover:bg-acento-600 active:translate-y-px;
+    @apply btn bg-acento-500 text-tinta-900 hover:bg-acento-600;
   }
   .btn-tinta {
-    @apply btn bg-tinta-900 text-papel-50 hover:bg-tinta-800 active:translate-y-px;
+    @apply btn bg-tinta-900 text-papel-50 hover:bg-tinta-800;
   }
   .btn-contorno {
-    @apply btn border border-tinta-900 text-tinta-900 hover:bg-tinta-900 hover:text-papel-50 active:translate-y-px;
+    @apply btn border border-tinta-900 text-tinta-900 hover:bg-tinta-900 hover:text-papel-50;
   }
   .btn-fantasma {
     @apply btn text-tinta-600 hover:text-acento-texto hover:bg-papel-200;
@@ -303,6 +367,37 @@
     -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+}
+
+/* ===========================================================================
+   TRANSIÇÃO ENTRE PÁGINAS (View Transitions, ligadas em app.config.ts)
+   O resto da página troca num crossfade curto; a capa do evento clicado tem
+   nome próprio e viaja da lista até o banner do detalhe.
+   =========================================================================== */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 220ms;
+  animation-timing-function: cubic-bezier(0.23, 1, 0.32, 1);
+}
+::view-transition-group(capa-evento) {
+  animation-duration: 480ms;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.175, 1);
+}
+/* A capa muda de proporção (cartão → banner). Sem isto, o navegador estica a
+   foto durante a viagem em vez de recortá-la. */
+::view-transition-old(capa-evento),
+::view-transition-new(capa-evento) {
+  height: 100%;
+  object-fit: cover;
+  overflow: clip;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation: none !important;
   }
 }
 

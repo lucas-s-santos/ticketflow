@@ -19,6 +19,8 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.UUID;
 
@@ -73,14 +75,36 @@ public class PaymentService {
         }
 
         // 4. Publica a mensagem para processamento assíncrono pelo "gateway"
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.EXCHANGE,
-                RabbitMQConfig.ROUTING_KEY,
-                new PaymentMessage(saved.getId()));
+        publishAfterCommit(new PaymentMessage(saved.getId()));
 
         log.info("Checkout iniciado: pagamento={}, reserva={}, valor={}",
                 saved.getId(), reservation.getId(), saved.getAmount());
         return toResponseDto(saved);
+    }
+
+    // A mensagem só pode sair depois do commit. O saveAndFlush manda o INSERT ao banco,
+    // mas a linha só fica visível para outras conexões quando a transação termina; o
+    // consumidor roda em outra thread e outra conexão. Publicando antes, ele às vezes
+    // lia o pagamento antes de existir, descartava a mensagem como "não encontrado" e o
+    // pagamento ficava em PROCESSING para sempre — a pessoa pagava e a reserva expirava.
+    //
+    // Limite conhecido: se a aplicação cair entre o commit e o envio, a mensagem se
+    // perde. Fechar essa janela exige um outbox transacional.
+    private void publishAfterCommit(PaymentMessage message) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            send(message);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                send(message);
+            }
+        });
+    }
+
+    private void send(PaymentMessage message) {
+        rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE, RabbitMQConfig.ROUTING_KEY, message);
     }
 
     @Transactional(readOnly = true)

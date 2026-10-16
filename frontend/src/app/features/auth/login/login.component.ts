@@ -21,7 +21,7 @@ import { AuthService } from '../auth.service';
         <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
           <div>
             <label for="email" class="campo-rotulo">E-mail</label>
-            <input id="email" type="email" formControlName="email" autocomplete="email" class="campo" />
+            <input id="email" type="email" formControlName="email" maxlength="254" autocomplete="email" class="campo" />
             @if (form.controls.email.invalid && form.controls.email.touched) {
               <p class="campo-erro">Informe um e-mail válido</p>
             }
@@ -29,7 +29,7 @@ import { AuthService } from '../auth.service';
 
           <div>
             <label for="senha" class="campo-rotulo">Senha</label>
-            <input id="senha" type="password" formControlName="password" autocomplete="current-password" class="campo" />
+            <input id="senha" type="password" formControlName="password" maxlength="72" autocomplete="current-password" class="campo" />
             @if (form.controls.password.invalid && form.controls.password.touched) {
               <p class="campo-erro">Informe sua senha</p>
             }

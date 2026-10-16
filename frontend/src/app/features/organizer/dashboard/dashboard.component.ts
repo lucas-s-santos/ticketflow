@@ -2,13 +2,14 @@ import { Component, inject, OnInit, signal } from '@angular/core';
 import { CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { RevelarDirective } from '../../../shared/directives/revelar.directive';
+import { ContagemDirective } from '../../../shared/directives/contagem.directive';
 import { OrganizerService } from '../organizer.service';
 import { OrganizerDashboard } from '../organizer.model';
 
 @Component({
   selector: 'app-organizer-dashboard',
   standalone: true,
-  imports: [CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe, RouterLink, RevelarDirective],
+  imports: [CurrencyPipe, DatePipe, DecimalPipe, UpperCasePipe, RouterLink, RevelarDirective, ContagemDirective],
   template: `
     <div class="max-w-5xl mx-auto px-6 py-12 md:py-16">
 
@@ -42,17 +43,16 @@ import { OrganizerDashboard } from '../organizer.model';
         <div class="grid gap-px sm:grid-cols-3 bg-papel-300 border border-papel-300 mb-14">
           <div appRevelar class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Eventos</p>
-            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalEvents }}</p>
+            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none" [appContagem]="d.totalEvents"></p>
           </div>
           <div appRevelar [atraso]="80" class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Ingressos vendidos</p>
-            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none">{{ d.totalTicketsSold }}</p>
+            <p class="numero text-titulo-md font-bold text-tinta-900 leading-none" [appContagem]="d.totalTicketsSold"></p>
           </div>
           <div appRevelar [atraso]="160" class="bg-papel-50 p-7">
             <p class="etiqueta text-tinta-400 mb-3">Receita</p>
-            <p class="numero text-titulo-md font-bold text-acento-texto leading-none">
-              {{ d.totalRevenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
-            </p>
+            <p class="numero text-titulo-md font-bold text-acento-texto leading-none"
+               [appContagem]="d.totalRevenue" formato="moeda"></p>
           </div>
         </div>
 
@@ -88,7 +88,31 @@ import { OrganizerDashboard } from '../organizer.model';
                   </div>
                 </div>
 
-                <div class="overflow-x-auto">
+                <!-- Celular: cada setor numa linha empilhada. A tabela de cinco colunas
+                     só cabia rolando para o lado. -->
+                <ul class="sm:hidden divide-y divide-papel-200">
+                  @for (s of ev.sectors; track s.sectorName) {
+                    <li class="py-3.5">
+                      <div class="flex items-baseline justify-between gap-3 mb-2">
+                        <span class="font-medium text-tinta-900">{{ s.sectorName }}</span>
+                        <span class="numero text-sm text-tinta-700 shrink-0">
+                          {{ s.revenue | currency:'BRL':'symbol':'1.2-2':'pt-BR' }}
+                        </span>
+                      </div>
+                      <div class="flex items-center gap-3">
+                        <div class="flex-1 h-1.5 bg-papel-300 overflow-hidden">
+                          <div class="barra-ocupacao" [style.transform]="escalaBarra(s.sold, s.capacity)"></div>
+                        </div>
+                        <span class="numero text-xs shrink-0"
+                              [class]="s.available === 0 ? 'text-erro-600 font-bold' : 'text-tinta-500'">
+                          {{ s.sold }}/{{ s.capacity }} · {{ s.available === 0 ? 'esgotado' : s.available + ' restam' }}
+                        </span>
+                      </div>
+                    </li>
+                  }
+                </ul>
+
+                <div class="hidden sm:block overflow-x-auto">
                   <table class="w-full text-sm min-w-[36rem]">
                     <thead>
                       <tr class="border-b border-papel-300">
@@ -113,7 +137,7 @@ import { OrganizerDashboard } from '../organizer.model';
                           <td class="py-3.5 px-4">
                             <div class="flex items-center gap-2.5">
                               <div class="flex-1 h-1.5 bg-papel-300 overflow-hidden">
-                                <div class="h-full bg-acento-500" [style.width.%]="ocupacao(s.sold, s.capacity)"></div>
+                                <div class="barra-ocupacao" [style.transform]="escalaBarra(s.sold, s.capacity)"></div>
                               </div>
                               <span class="numero text-xs text-tinta-400 w-9 text-right">
                                 {{ ocupacao(s.sold, s.capacity) | number:'1.0-0' }}%
@@ -144,11 +168,19 @@ export class DashboardComponent implements OnInit {
   readonly carregando = signal(true);
   readonly erro = signal(false);
 
+  /**
+   * As barras de ocupação nascem vazias e crescem até o valor logo depois de
+   * aparecerem: uma vez, na carga. Sem esse passo o Angular já as desenharia
+   * cheias e a transição nunca rodaria.
+   */
+  private readonly barrasProntas = signal(false);
+
   ngOnInit(): void {
     this.service.getDashboard().subscribe({
       next: (d) => {
         this.dados.set(d);
         this.carregando.set(false);
+        setTimeout(() => this.barrasProntas.set(true), 80);
       },
       error: () => {
         this.erro.set(true);
@@ -159,5 +191,11 @@ export class DashboardComponent implements OnInit {
 
   ocupacao(vendidos: number, capacidade: number): number {
     return capacidade > 0 ? (vendidos / capacidade) * 100 : 0;
+  }
+
+  /** scaleX em vez de width: a barra cresce sem recalcular o layout da tabela. */
+  escalaBarra(vendidos: number, capacidade: number): string {
+    const fracao = this.barrasProntas() ? this.ocupacao(vendidos, capacidade) / 100 : 0;
+    return `scaleX(${fracao.toFixed(4)})`;
   }
 }

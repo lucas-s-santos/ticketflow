@@ -23,7 +23,7 @@ type Papel = 'CLIENTE' | 'ORGANIZADOR';
         <form [formGroup]="form" (ngSubmit)="enviar()" class="space-y-5">
           <div>
             <label for="nome" class="campo-rotulo">Nome</label>
-            <input id="nome" type="text" formControlName="name" autocomplete="name" class="campo" />
+            <input id="nome" type="text" formControlName="name" maxlength="120" autocomplete="name" class="campo" />
             @if (form.controls.name.invalid && form.controls.name.touched) {
               <p class="campo-erro">Informe seu nome</p>
             }
@@ -31,7 +31,7 @@ type Papel = 'CLIENTE' | 'ORGANIZADOR';
 
           <div>
             <label for="email" class="campo-rotulo">E-mail</label>
-            <input id="email" type="email" formControlName="email" autocomplete="email" class="campo" />
+            <input id="email" type="email" formControlName="email" maxlength="254" autocomplete="email" class="campo" />
             @if (form.controls.email.invalid && form.controls.email.touched) {
               <p class="campo-erro">Informe um e-mail válido</p>
             }
@@ -39,7 +39,7 @@ type Papel = 'CLIENTE' | 'ORGANIZADOR';
 
           <div>
             <label for="senha" class="campo-rotulo">Senha</label>
-            <input id="senha" type="password" formControlName="password" autocomplete="new-password" class="campo" />
+            <input id="senha" type="password" formControlName="password" maxlength="72" autocomplete="new-password" class="campo" />
             @if (form.controls.password.invalid && form.controls.password.touched) {
               <p class="campo-erro">A senha precisa de ao menos 6 caracteres</p>
             }
@@ -56,7 +56,7 @@ type Papel = 'CLIENTE' | 'ORGANIZADOR';
                   role="radio"
                   [attr.aria-checked]="papelAtual() === opcao.valor"
                   (click)="escolherPapel(opcao.valor)"
-                  class="text-left border p-4 transition-all duration-150"
+                  class="text-left border p-4 transition-[border-color,background-color,box-shadow,transform] duration-150 active:scale-[0.99]"
                   [class]="papelAtual() === opcao.valor
                     ? 'border-acento-500 bg-acento-100/50 ring-1 ring-acento-escuro'
                     : 'border-papel-300 bg-papel-50 hover:border-tinta-400'"

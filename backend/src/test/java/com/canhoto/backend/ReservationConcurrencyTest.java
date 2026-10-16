@@ -81,10 +81,10 @@ class ReservationConcurrencyTest extends IntegrationTest {
 
     @AfterEach
     void tearDown() {
-        // Remove dados de teste na ordem certa (respeita FKs)
-        reservationRepository.findByStatusAndExpiresAtBefore(ReservationStatus.PENDING,
-                OffsetDateTime.now().plusHours(1))
-                .forEach(r -> reservationRepository.delete(r));
+        // Remove dados de teste na ordem certa (respeita FKs).
+        // Só as reservas dos usuários criados aqui: os testes rodam no mesmo banco do
+        // docker compose, e apagar "toda reserva pendente" levava junto as reservas de
+        // quem estava usando o app — e falhava quando alguma já tinha pagamento.
         reservationRepository.findAll().stream()
                 .filter(r -> userIds.contains(r.getUser().getId()))
                 .forEach(reservationRepository::delete);

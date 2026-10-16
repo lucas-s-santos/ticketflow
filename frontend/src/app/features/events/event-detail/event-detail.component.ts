@@ -1,6 +1,7 @@
 import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { RevelarDirective } from '../../../shared/directives/revelar.directive';
+import { ParalaxeDirective } from '../../../shared/directives/paralaxe.directive';
 import { CurrencyPipe, DatePipe, UpperCasePipe } from '@angular/common';
 import { EventService } from '../event.service';
 import { EventResponse, TicketSectorResponse } from '../event.model';
@@ -14,8 +15,62 @@ const MAX_INGRESSOS = 10;
 @Component({
   selector: 'app-event-detail',
   standalone: true,
-  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, RevelarDirective],
+  imports: [DatePipe, CurrencyPipe, UpperCasePipe, RouterLink, RevelarDirective, ParalaxeDirective],
   template: `
+    <!--
+      ================= BANNER =================
+      A capa de ponta a ponta, com o nome por cima. Vem desenhada já no primeiro
+      quadro, com a capa e o nome que a lista mandou na navegação: é isso que
+      deixa a foto "voar" do cartão até aqui (view-transition-name igual nos
+      dois lados) antes mesmo de a API responder.
+    -->
+    @if (capa(); as url) {
+      <header class="relative isolate overflow-hidden bg-tinta-900 h-[44vh] min-h-[20rem] md:h-[58vh]">
+        <div class="absolute inset-0 overflow-hidden" style="view-transition-name: capa-evento">
+          <div appParalaxe [deslocamento]="-60" class="absolute inset-x-0 -top-[10%] h-[120%]">
+            <img [src]="url" [alt]="'Imagem de ' + (evento()?.name ?? nomeInicial())" decoding="async"
+                 class="w-full h-full object-cover" />
+          </div>
+        </div>
+        <div class="absolute inset-0 bg-gradient-to-t from-tinta-900 via-tinta-900/45 to-tinta-900/20"
+             aria-hidden="true"></div>
+
+        <div class="relative h-full max-w-4xl mx-auto px-6 py-8 md:py-10 flex flex-col justify-between">
+          <div class="flex items-center justify-between gap-4">
+            <a routerLink="/events" class="etiqueta text-papel-50/80 hover:text-acento-500 transition-colors">
+              ← Voltar aos eventos
+            </a>
+            @if (evento() && auth.isOrganizador()) {
+              <a [routerLink]="['/events', evento()!.id, 'edit']"
+                 class="btn btn-pequeno border border-papel-50/40 text-papel-50 hover:bg-papel-50 hover:text-tinta-900">
+                Editar
+              </a>
+            }
+          </div>
+
+          <div>
+            @if (evento(); as ev) {
+              <div class="flex items-baseline gap-3 mb-3 animate-entrar-baixo">
+                <span class="numero text-titulo-md font-bold text-papel-50 leading-none">
+                  {{ ev.date | date:'dd' }}
+                </span>
+                <span class="etiqueta text-acento-500">
+                  {{ ev.date | date:'MMM':undefined:'pt-BR' | uppercase }}
+                </span>
+                <span class="etiqueta text-papel-300">
+                  {{ ev.date | date:'EEEE, HH:mm':undefined:'pt-BR' }}
+                </span>
+              </div>
+            }
+            <h1 class="text-titulo-lg font-semibold text-papel-50 mb-2">{{ evento()?.name ?? nomeInicial() }}</h1>
+            @if (evento(); as ev) {
+              <p class="text-papel-300 animate-entrar-baixo">{{ ev.location }}</p>
+            }
+          </div>
+        </div>
+      </header>
+    }
+
     <div class="max-w-4xl mx-auto px-6 py-12 md:py-16">
 
       @if (carregando()) {
@@ -36,20 +91,11 @@ const MAX_INGRESSOS = 10;
         <!-- O "as" so e permitido no @if primario, por isso este bloco e aninhado -->
         @if (evento(); as ev) {
 
-        <!-- ================= CABECALHO ================= -->
+        <!-- ================= CABECALHO (evento sem capa) ================= -->
+        @if (!capa()) {
         <a routerLink="/events" class="etiqueta text-tinta-500 hover:text-acento-texto transition-colors inline-block mb-8">
           ← Voltar aos eventos
         </a>
-
-        @if (ev.coverImageUrl) {
-          <!-- Capa no formato de ingresso, com o recorte alinhado a perfuracao
-               que separa a imagem do conteudo logo abaixo. -->
-          <div class="bilhete overflow-hidden mb-10" style="--recorte-y: 100%">
-            <img [src]="ev.coverImageUrl" [alt]="'Imagem de ' + ev.name"
-                 decoding="async"
-                 class="w-full h-64 md:h-80 object-cover saturate-[0.94]" />
-          </div>
-        }
 
         <div class="flex items-start justify-between gap-6 mb-3">
           <div class="flex items-baseline gap-3">
@@ -71,6 +117,7 @@ const MAX_INGRESSOS = 10;
 
         <h1 class="text-titulo-lg font-semibold text-tinta-900 mb-3">{{ ev.name }}</h1>
         <p class="text-tinta-500 mb-8">{{ ev.location }}</p>
+        }
 
         @if (ev.description) {
           <p class="text-lg leading-relaxed text-tinta-600 max-w-2xl mb-12">{{ ev.description }}</p>
@@ -93,7 +140,8 @@ const MAX_INGRESSOS = 10;
                 [attr.aria-checked]="setorId() === setor.id"
                 [disabled]="setor.availableSeats === 0"
                 (click)="selecionar(setor)"
-                class="w-full text-left border px-5 py-4 transition-all duration-150 flex items-center gap-5
+                class="w-full text-left border px-5 py-4 transition-[border-color,background-color,box-shadow,transform] duration-150
+                       active:scale-[0.99] flex items-center gap-5
                        disabled:opacity-45 disabled:cursor-not-allowed"
                 [class]="setorId() === setor.id
                   ? 'border-acento-500 bg-acento-100/50 ring-1 ring-acento-escuro'
@@ -218,6 +266,19 @@ export class EventDetailComponent implements OnInit {
   readonly evento = signal<EventResponse | null>(null);
   readonly carregando = signal(true);
   readonly erro = signal(false);
+
+  // A lista manda capa e nome na navegação (RouterLink [state]). Só existe
+  // durante a navegação, por isso é lido aqui, na construção do componente.
+  // Entrando por link direto ou recarregando a página, não há estado: o banner
+  // espera a API.
+  private readonly estadoDaLista = inject(Router).currentNavigation()?.extras.state as
+    { capa?: string | null; nome?: string } | undefined;
+  readonly nomeInicial = signal(this.estadoDaLista?.nome ?? '');
+
+  readonly capa = computed(() => {
+    if (this.erro()) return null;
+    return this.evento()?.coverImageUrl ?? (this.carregando() ? this.estadoDaLista?.capa ?? null : null);
+  });
 
   readonly setorId = signal<string>('');
   readonly quantidade = signal(1);

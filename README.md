@@ -52,7 +52,7 @@ junto com seis eventos e seus setores:
 | Camada | Tecnologia |
 |---|---|
 | **Backend** | Java 21, Spring Boot 3.3, Spring Security, Spring Data JPA, Spring AMQP |
-| **Frontend** | Angular 18 (standalone components + Signals), Tailwind CSS |
+| **Frontend** | Angular 21 (standalone components + Signals), Tailwind CSS |
 | **Banco** | PostgreSQL 16 (schema versionado com Flyway) |
 | **Mensageria** | RabbitMQ 3.13 |
 | **Auth** | JWT (JJWT), BCrypt, autorização por papéis |
@@ -114,7 +114,7 @@ sequenceDiagram
 ## 🚀 Rodando localmente
 
 ### Pré-requisitos
-- Java 21, Node 18+, Docker Desktop
+- Java 21, Node 24 (versão fixada no `engines` do `frontend/package.json`), Docker Desktop
 
 ### 1. Subir a infraestrutura
 ```bash
@@ -176,7 +176,7 @@ npm start
 
 A cada push/PR, o workflow [`.github/workflows/ci.yml`](.github/workflows/ci.yml) roda:
 - **Backend:** sobe Postgres + RabbitMQ como service containers e executa `mvn -B verify` — incluindo os testes de integração (concorrência de reservas, idempotência de pagamento) e os unitários (assinatura de webhook e de ingresso).
-- **Frontend:** `npm ci` + suite de testes em Chrome headless + build de produção.
+- **Frontend:** `npm ci` + suíte de testes (Vitest, em jsdom — não precisa de navegador) + build de produção.
   Os specs ficam fora do build, então rodar só o build deixaria passar um teste quebrado.
 
 ---
@@ -204,7 +204,15 @@ Arquitetura de produção: **Render** (backend Docker) · **Vercel** (frontend) 
 2. **CloudAMQP** — crie uma instância *Little Lemur* (free), copie a *AMQP URL* → `SPRING_RABBITMQ_ADDRESSES`.
 3. **Render** — *New → Blueprint* (usa o [`render.yaml`](render.yaml)) ou *New → Web Service* com runtime Docker apontando para `backend/Dockerfile`. Preencha as env vars acima e faça deploy. Anote a URL pública.
 4. **Vercel** — *Import* o repo, *Root Directory* = `frontend` (o [`vercel.json`](frontend/vercel.json) cuida do build e do roteamento SPA). Deploy e anote a URL.
-5. **Fechar o ciclo** — ponha a URL da Vercel em `APP_CORS_ALLOWED_ORIGINS` (Render) e a URL do Render em [`frontend/src/environments/environment.prod.ts`](frontend/src/environments/environment.prod.ts); commit → a Vercel redeploya sozinha.
+5. **Fechar o ciclo** — ponha a URL da Vercel em `APP_CORS_ALLOWED_ORIGINS` (Render) e a URL do Render em [`frontend/src/environments/environment.prod.ts`](frontend/src/environments/environment.prod.ts) **e** no `connect-src` da `Content-Security-Policy` em [`frontend/vercel.json`](frontend/vercel.json); commit → a Vercel redeploya sozinha.
+
+> **Headers de segurança do front.** O `vercel.json` envia CSP, `X-Frame-Options`,
+> `nosniff`, `Referrer-Policy` e `Permissions-Policy`. A CSP só libera scripts do próprio
+> domínio, então um XSS não consegue carregar código de fora nem mandar o token para outro
+> servidor. Se a URL da API mudar e o `connect-src` não acompanhar, o navegador bloqueia
+> todas as chamadas — o console mostra `Refused to connect`. Pelo mesmo motivo o
+> `inlineCritical` do build está desligado em `angular.json`: ele carrega o CSS com um
+> `onload` inline, que a CSP bloquearia e deixaria a página sem estilo.
 
 > O plano free do Render hiberna após inatividade — o primeiro acesso depois de ocioso leva ~50s (cold start).
 

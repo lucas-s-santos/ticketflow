@@ -8,7 +8,7 @@ Canhoto é uma plataforma de venda de ingressos com gateway de pagamento simulad
 > falta renomear o repositório no GitHub e a pasta local, ambos ainda `ticketflow`.
 
 - **Backend:** Java 21 + Spring Boot 3.x → pasta `backend/`
-- **Frontend:** Angular 18+ (standalone) + Tailwind CSS → pasta `frontend/`
+- **Frontend:** Angular 21 (standalone) + Tailwind CSS → pasta `frontend/`
 - **Banco:** PostgreSQL 16 (Docker local, Neon em produção)
 - **Mensageria:** RabbitMQ 3.13 (Docker local, CloudAMQP em produção)
 
@@ -17,7 +17,7 @@ Canhoto é uma plataforma de venda de ingressos com gateway de pagamento simulad
 ## Executando Localmente
 
 ### Pré-requisitos
-- Java 21, Node 18+, Docker Desktop
+- Java 21, Node 24 (`engines` do `frontend/package.json`), Docker Desktop
 
 ### 1. Subir infraestrutura
 ```bash
@@ -29,7 +29,7 @@ docker compose up -d
 ### 2. Subir backend
 ```bash
 cd backend
-./mvnw spring-boot:run
+./mvnw.cmd spring-boot:run   # só o wrapper do Windows está versionado (PowerShell ou Git Bash); Linux/macOS: mvn spring-boot:run
 ```
 - API: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html

@@ -1,5 +1,5 @@
 import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
@@ -14,7 +14,10 @@ registerLocaleData(localePt, 'pt-BR');
 export const appConfig: ApplicationConfig = {
   providers: [
     provideZoneChangeDetection({ eventCoalescing: true }),
-    provideRouter(routes),
+    // View Transitions nativas: troca de página com crossfade curto, e a capa do
+    // evento "voando" da lista até o banner do detalhe (ver styles.css).
+    // Navegador sem suporte só troca de página, como antes.
+    provideRouter(routes, withViewTransitions({ skipInitialTransition: true })),
     // withInterceptors: registra interceptors funcionais que processam toda requisição HTTP
     provideHttpClient(withInterceptors([jwtInterceptor])),
     // Define pt-BR como localidade padrão da aplicação
