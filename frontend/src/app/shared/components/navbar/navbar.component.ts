@@ -64,23 +64,23 @@ const ROTAS_COM_HERO_ESCURO = ['/', ''];
         <!-- Navegação em linha: md para cima -->
         <nav class="hidden md:flex items-center gap-7 text-sm">
           <a routerLink="/events" [routerLinkActive]="classeAtiva()"
-             class="font-medium transition-colors" [class]="classeLink()">
+             class="link-traco font-medium transition-colors" [class]="classeLink()">
             Eventos
           </a>
 
           @if (auth.isLoggedIn()) {
             @if (auth.isOrganizador()) {
               <a routerLink="/organizer" [routerLinkActive]="classeAtiva()"
-                 class="font-medium transition-colors" [class]="classeLink()">
+                 class="link-traco font-medium transition-colors" [class]="classeLink()">
                 Painel
               </a>
               <a routerLink="/organizer/validate" [routerLinkActive]="classeAtiva()"
-                 class="font-medium transition-colors" [class]="classeLink()">
+                 class="link-traco font-medium transition-colors" [class]="classeLink()">
                 Portaria
               </a>
             }
             <a routerLink="/reservations" [routerLinkActive]="classeAtiva()"
-               class="font-medium transition-colors" [class]="classeLink()">
+               class="link-traco font-medium transition-colors" [class]="classeLink()">
               Meus ingressos
             </a>
 

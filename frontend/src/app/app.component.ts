@@ -32,10 +32,10 @@ import { AuthService } from './features/auth/auth.service';
 
             <nav class="flex flex-col gap-2.5 text-sm">
               <p class="etiqueta text-tinta-400 mb-1">Navegar</p>
-              <a routerLink="/events" class="text-tinta-700 hover:text-acento-texto transition-colors">Eventos</a>
-              <a routerLink="/reservations" class="text-tinta-700 hover:text-acento-texto transition-colors">Meus ingressos</a>
+              <a routerLink="/events" class="link-traco self-start text-tinta-700 hover:text-acento-texto transition-colors">Eventos</a>
+              <a routerLink="/reservations" class="link-traco self-start text-tinta-700 hover:text-acento-texto transition-colors">Meus ingressos</a>
               @if (!auth.isLoggedIn()) {
-                <a routerLink="/login" class="text-tinta-700 hover:text-acento-texto transition-colors">Entrar</a>
+                <a routerLink="/login" class="link-traco self-start text-tinta-700 hover:text-acento-texto transition-colors">Entrar</a>
               }
             </nav>
 

@@ -23,11 +23,19 @@ export class ContagemDirective implements OnDestroy {
 
   readonly valor = input.required<number>({ alias: 'appContagem' });
   readonly formato = input<'inteiro' | 'moeda'>('inteiro');
+  /**
+   * Espera o número aparecer na tela para contar. No painel o número já está à
+   * vista quando chega da API; numa seção abaixo da dobra, a contagem
+   * terminaria antes de alguém ver.
+   */
+  readonly quandoVisivel = input(false);
 
   private readonly elemento = inject(ElementRef<HTMLElement>);
   private readonly zona = inject(NgZone);
   private animacao?: gsap.core.Tween;
   private primeira = true;
+  private visto = false;
+  private observador?: IntersectionObserver;
 
   constructor() {
     effect(() => this.escrever(this.valor()));
@@ -35,6 +43,7 @@ export class ContagemDirective implements OnDestroy {
 
   ngOnDestroy(): void {
     this.animacao?.kill();
+    this.observador?.disconnect();
   }
 
   private escrever(alvo: number): void {
@@ -46,6 +55,12 @@ export class ContagemDirective implements OnDestroy {
     this.animacao?.kill();
     if (!this.primeira || reduzido) {
       el.textContent = formatar(alvo);
+      return;
+    }
+    if (this.quandoVisivel() && !this.visto) {
+      // Fica no zero até aparecer; aí conta até o valor mais recente.
+      el.textContent = formatar(0);
+      this.observador ??= this.observar(el);
       return;
     }
     this.primeira = false;
@@ -60,5 +75,16 @@ export class ContagemDirective implements OnDestroy {
         onUpdate: () => { el.textContent = formatar(this.formato() === 'moeda' ? contador.v : Math.round(contador.v)); },
       });
     });
+  }
+
+  private observar(el: HTMLElement): IntersectionObserver {
+    const observador = new IntersectionObserver(([entrada]) => {
+      if (!entrada.isIntersecting) return;
+      observador.disconnect();
+      this.visto = true;
+      this.escrever(this.valor());
+    }, { threshold: 0.6 });
+    observador.observe(el);
+    return observador;
   }
 }
