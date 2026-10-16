@@ -1,4 +1,11 @@
 import { Routes } from '@angular/router';
+import { authGuard } from './core/guards/auth.guard';
+import { organizerGuard } from './core/guards/organizer.guard';
+
+// Guardas importadas direto, nunca por import() dinâmico: canActivate com
+// () => import(...).then(m => m.guarda) devolve a FUNÇÃO da guarda sem
+// executá-la, e o router trata qualquer valor que não seja false nem
+// UrlTree como "pode entrar". Foi assim que estas rotas ficaram abertas.
 
 export const routes: Routes = [
   {
@@ -23,20 +30,20 @@ export const routes: Routes = [
   },
   {
     path: 'reservations',
-    canActivate: [() => import('./core/guards/auth.guard').then(m => m.authGuard)],
+    canActivate: [authGuard],
     loadComponent: () =>
       import('./features/reservations/my-reservations/my-reservations.component')
         .then((m) => m.MyReservationsComponent),
   },
   {
     path: 'organizer',
-    canActivate: [() => import('./core/guards/organizer.guard').then(m => m.organizerGuard)],
+    canActivate: [authGuard, organizerGuard],
     loadComponent: () =>
       import('./features/organizer/dashboard/dashboard.component').then((m) => m.DashboardComponent),
   },
   {
     path: 'organizer/validate',
-    canActivate: [() => import('./core/guards/organizer.guard').then(m => m.organizerGuard)],
+    canActivate: [authGuard, organizerGuard],
     loadComponent: () =>
       import('./features/organizer/validate/validate-ticket.component').then((m) => m.ValidateTicketComponent),
   },
