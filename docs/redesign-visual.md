@@ -34,7 +34,7 @@ git checkout feature/canhoto-rebrand-e-correcoes
 docker compose up -d                 # Postgres + RabbitMQ (Docker Desktop aberto antes)
 
 cd backend
-./mvnw spring-boot:run               # precisa de JDK 21 (JAVA_HOME apontando para ele)
+./mvnw.cmd spring-boot:run           # JDK 21 no JAVA_HOME; só o wrapper do Windows (.cmd) está versionado
 
 cd ../frontend
 npm install                          # o projeto usa npm, NÃO pnpm
@@ -47,7 +47,7 @@ Contas de demonstração: `organizador@demo.com` e `cliente@demo.com`, senha `de
 
 | Sintoma | Causa | Solução |
 |---|---|---|
-| Backend cai com `ClassFormatError: Invalid method Code length 0`, ou teste/contexto falha com `java.lang.Error: Unresolved compilation problems` | A extensão Java do VS Code (compilador do Eclipse) grava `.class` na mesma `backend/target/classes` do Maven — às vezes de um arquivo no meio da edição — e o Maven reaproveita | **Sempre** `./mvnw clean ...`; e pare o `spring-boot:run` antes de rodar testes (os dois compilam na mesma pasta) |
+| Backend cai com `ClassFormatError: Invalid method Code length 0`, ou teste/contexto falha com `java.lang.Error: Unresolved compilation problems` | A extensão Java do VS Code (compilador do Eclipse) grava `.class` na mesma `backend/target/classes` do Maven — às vezes de um arquivo no meio da edição — e o Maven reaproveita | **Sempre** `./mvnw.cmd clean ...`; e pare o `spring-boot:run` antes de rodar testes (os dois compilam na mesma pasta) |
 | `clean` falha com `Failed to delete ...\target\...` | Algum terminal está com a pasta `target` aberta (no Windows, pasta em uso fica travada) | sair da pasta e repetir |
 | Login devolve 429 depois de vários testes | Limite de 10 tentativas a cada 5 min por origem (é o app funcionando) | esperar a janela, ou nos scripts logar uma vez e reaproveitar o token (seção 7) |
 | `release 21 not supported` no Maven | `java` do PATH é antigo | definir `JAVA_HOME` para o JDK 21 |

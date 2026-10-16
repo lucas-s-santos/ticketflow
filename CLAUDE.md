@@ -29,7 +29,7 @@ docker compose up -d
 ### 2. Subir backend
 ```bash
 cd backend
-./mvnw spring-boot:run
+./mvnw.cmd spring-boot:run   # só o wrapper do Windows está versionado (PowerShell ou Git Bash); Linux/macOS: mvn spring-boot:run
 ```
 - API: http://localhost:8080
 - Swagger UI: http://localhost:8080/swagger-ui.html
