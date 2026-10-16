@@ -352,6 +352,352 @@
     box-decoration-break: clone;
     -webkit-box-decoration-break: clone;
   }
+
+  /* -------------------------------------------------------------------------
+     HOVER — efeitos que só existem com mouse (hover: hover, pointer: fine).
+     No toque, hover dispara no tap e gruda; por isso nada aqui fica fora da media.
+     ------------------------------------------------------------------------- */
+
+  /* Brilho que atravessa o botão: uma faixa de luz por trás do texto. Só a ida
+     tem transição — ao sair, a faixa volta ao começo sem ser vista. */
+  .btn-principal,
+  .btn-tinta {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+  .btn-principal::after,
+  .btn-tinta::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    background: linear-gradient(105deg, transparent 35%, rgb(255 255 255 / 0.5) 50%, transparent 65%);
+    transform: translateX(-120%);
+  }
+  .btn-tinta::after {
+    background: linear-gradient(105deg, transparent 35%, rgb(var(--acento-500) / 0.28) 50%, transparent 65%);
+  }
+
+  /* Traço verde que se desenha sob o link: entra pela esquerda, sai pela direita. */
+  .link-traco {
+    position: relative;
+  }
+  .link-traco::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 2px;
+    background: rgb(var(--acento-500));
+    transform: scaleX(0);
+    transform-origin: right;
+    transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .link-traco:focus-visible::after {
+    transform: scaleX(1);
+  }
+
+  /* Reflexo que segue o mouse (InclinarDirective). Um círculo de gradiente
+     movido por transform — não reposiciona background, não repinta o cartão. */
+  .reflexo {
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 2;
+    width: 320px;
+    height: 320px;
+    border-radius: 50%;
+    pointer-events: none;
+    opacity: 0;
+  }
+  .reflexo-papel  { background: radial-gradient(circle, rgb(255 255 255 / 0.24), transparent 65%); }
+  .reflexo-acento { background: radial-gradient(circle, rgb(var(--acento-500) / 0.16), transparent 65%); }
+
+  /* Vitrine "Em cartaz": a foto aproxima devagar e a seta anda. */
+  .cartaz-foto {
+    transition: transform 900ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+  .cartaz-seta > span {
+    transition: transform 280ms cubic-bezier(0.23, 1, 0.32, 1);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .btn-principal:hover::after,
+    .btn-tinta:hover::after {
+      transform: translateX(120%);
+      transition: transform 750ms cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    .link-traco:hover::after {
+      transform: scaleX(1);
+      transform-origin: left;
+    }
+    .cartaz:hover .cartaz-foto { transform: scale(1.06); }
+    .cartaz:hover .cartaz-seta { @apply text-acento-texto; }
+    .cartaz:hover .cartaz-seta > span { transform: translateX(5px); }
+    .garantia:hover { border-color: rgb(var(--acento-500) / 0.45); }
+  }
+
+  /* -------------------------------------------------------------------------
+     POR DENTRO — a seção escura das garantias, no fim da home.
+     As demonstrações têm o ESTADO FINAL como estilo base: sem script (ou com
+     movimento reduzido) cada uma aparece parada e completa. Com .em-cena
+     (DemonstrarDirective), keyframes com fill "both" voltam ao começo durante
+     o atraso e tocam até o fim. Keyframes, e não transition, porque religar
+     no hover precisa recomeçar do zero.
+     ------------------------------------------------------------------------- */
+  .fundo-por-dentro {
+    background:
+      radial-gradient(ellipse 60% 45% at 85% 0%, rgb(var(--acento-500) / 0.10), transparent 70%),
+      linear-gradient(to bottom, rgb(var(--tinta-900)), rgb(var(--tinta-800)));
+  }
+
+  /* Marca-texto que se desenha: o verde corre por trás e a letra escurece
+     junto, porque tinta sobre o fundo escuro antes do verde chegar sumiria. */
+  .marca-viva {
+    position: relative;
+    z-index: 0;
+    display: inline-block;
+    padding: 0 0.12em;
+    color: rgb(var(--tinta-900));
+  }
+  .marca-viva::before {
+    content: '';
+    position: absolute;
+    inset: 0.1em -0.04em 0.02em;
+    z-index: -1;
+    background: rgb(var(--acento-500));
+    transform-origin: left;
+  }
+  .em-cena .marca-viva         { animation: demo-tingir 300ms ease 550ms both; }
+  .em-cena .marca-viva::before { animation: demo-marcar 750ms cubic-bezier(0.77, 0, 0.175, 1) 200ms both; }
+
+  /* O cartão da garantia: ingresso escuro, com as mordidas na linha que separa
+     a demonstração do texto (mesma máscara do .bilhete). */
+  .garantia {
+    --recorte-r: 13px;
+    --recorte-y: 11rem;
+    @apply relative overflow-hidden rounded-bilhete;
+    background: rgb(var(--tinta-800) / 0.75);
+    border: 1px solid rgb(var(--papel-50) / 0.1);
+    transition: border-color 250ms ease;
+    -webkit-mask-image:
+      radial-gradient(circle var(--recorte-r) at left var(--recorte-y), transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at right var(--recorte-y), transparent 98%, #000 100%);
+    -webkit-mask-composite: source-in;
+    mask-image:
+      radial-gradient(circle var(--recorte-r) at left var(--recorte-y), transparent 98%, #000 100%),
+      radial-gradient(circle var(--recorte-r) at right var(--recorte-y), transparent 98%, #000 100%);
+    mask-composite: intersect;
+  }
+  .garantia-palco {
+    @apply relative flex flex-col items-center justify-center px-6;
+    height: 11rem;
+    background: rgb(var(--tinta-900) / 0.55);
+    border-bottom: 1px dashed rgb(var(--papel-50) / 0.14);
+  }
+  .demo-legenda {
+    margin-top: 0.9rem;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    color: rgb(var(--papel-300));
+  }
+  .em-cena .demo-legenda { animation: demo-surgir 400ms ease 1700ms both; }
+
+  /* 01 · Sem sobrevenda: 20 pedidos chegam, 5 viram reserva, 15 apagam. */
+  .demo-assentos {
+    display: grid;
+    grid-template-columns: repeat(10, minmax(0, 1fr));
+    gap: 6px;
+    width: 100%;
+    max-width: 19rem;
+  }
+  .assento {
+    position: relative;
+    aspect-ratio: 1;
+    border: 1.5px solid rgb(var(--papel-50) / 0.4);
+    opacity: 0.35;
+  }
+  .assento-vendido {
+    opacity: 1;
+    border-color: rgb(var(--acento-500));
+  }
+  .assento-vendido::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    background: rgb(var(--acento-500));
+  }
+  /* "recusar" usa forwards, não both: com both ele aplicaria a opacidade
+     inicial dele durante o próprio atraso, por cima da chegada do pedido. */
+  .em-cena .assento {
+    animation: demo-pedido 260ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--i) * 35ms) both,
+               demo-recusar 300ms ease 1500ms forwards;
+  }
+  .em-cena .assento-vendido        { animation: demo-pedido 260ms cubic-bezier(0.23, 1, 0.32, 1) calc(var(--i) * 35ms) both; }
+  .em-cena .assento-vendido::after { animation: demo-encher 320ms cubic-bezier(0.23, 1, 0.32, 1) calc(950ms + var(--i) * 90ms) both; }
+
+  /* 02 · Cobrança única: o mesmo pedido chega duas vezes, sai uma cobrança. */
+  .demo-cobranca {
+    display: grid;
+    gap: 0.5rem;
+    width: 100%;
+    max-width: 21rem;
+    font-size: 11px;
+  }
+  .pedido {
+    @apply flex flex-wrap items-center gap-2 px-3 py-2;
+    border: 1px solid rgb(var(--papel-50) / 0.16);
+    color: rgb(var(--papel-300));
+  }
+  .pedido .chave { color: rgb(var(--papel-400)); }
+  /* Só o texto do pedido repetido apaga; o selo "mesma chave" é a explicação e fica aceso. */
+  .pedido-2 { border-style: dashed; }
+  .pedido-2 .pedido-texto { opacity: 0.5; }
+  .mesma-chave {
+    @apply ml-auto px-1.5 py-0.5;
+    background: rgb(var(--ocre-100));
+    color: rgb(var(--ocre-600));
+  }
+  .recibo {
+    @apply justify-self-start px-3 py-2 font-bold;
+    background: rgb(var(--acento-500));
+    color: rgb(var(--tinta-900));
+  }
+  .em-cena .pedido-1    { animation: demo-chegar 350ms cubic-bezier(0.23, 1, 0.32, 1) 100ms both; }
+  .em-cena .pedido-2    { animation: demo-chegar 350ms cubic-bezier(0.23, 1, 0.32, 1) 450ms both; }
+  .em-cena .pedido-2 .pedido-texto { animation: demo-apagar 300ms ease 1500ms both; }
+  .em-cena .mesma-chave { animation: demo-carimbar 320ms cubic-bezier(0.23, 1, 0.32, 1) 950ms both; }
+  .em-cena .recibo      { animation: demo-surgir 400ms ease 1250ms both; }
+
+  /* 03 · Segundo plano: a confirmação percorre checkout → fila → gateway → webhook.
+     Os pontos têm 4.5rem de largura cada; o trilho liga o centro do primeiro
+     ao do último. */
+  .demo-fila {
+    position: relative;
+    width: 100%;
+    max-width: 22rem;
+  }
+  .fila-trilho {
+    position: absolute;
+    top: 5px;
+    left: 2.25rem;
+    right: 2.25rem;
+    height: 3px;
+    background-image: radial-gradient(circle at center, rgb(var(--papel-50) / 0.3) 1.3px, transparent 1.4px);
+    background-size: 9px 3px;
+    background-repeat: repeat-x;
+  }
+  .fila-tinta {
+    position: absolute;
+    inset: 0;
+    background: rgb(var(--acento-500));
+    transform-origin: left;
+  }
+  .fila-etapas {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+  }
+  .fila-etapa {
+    @apply flex flex-col items-center gap-2.5 text-center;
+    width: 4.5rem;
+    font-size: 10px;
+    color: rgb(var(--papel-300));
+  }
+  .fila-ponto {
+    position: relative;
+    width: 13px;
+    height: 13px;
+    background: rgb(var(--tinta-700));
+    border: 1.5px solid rgb(var(--papel-50) / 0.35);
+  }
+  .fila-ponto::after {
+    content: '';
+    position: absolute;
+    inset: -1.5px;
+    background: rgb(var(--acento-500));
+  }
+  .fila-legenda { text-align: center; }
+  .em-cena .fila-tinta        { animation: demo-trilho 1500ms cubic-bezier(0.65, 0, 0.35, 1) 200ms both; }
+  .em-cena .fila-ponto::after { animation: demo-acender 220ms ease calc(200ms + var(--j) * 500ms) both; }
+  .em-cena .fila-legenda      { animation: demo-surgir 400ms ease 1900ms both; }
+
+  /* 04 · Uso único: duas leituras do mesmo código; a segunda leva o carimbo. */
+  .demo-portaria {
+    @apply flex items-center gap-6;
+  }
+  .demo-qr {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 2px;
+    width: 5.5rem;
+    padding: 6px;
+    overflow: hidden;
+    background: rgb(var(--papel-50));
+  }
+  .demo-qr > span { aspect-ratio: 1; }
+  .demo-qr > .cheio { background: rgb(var(--tinta-900)); }
+  .demo-qr > .varredura {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    aspect-ratio: auto;
+    background: rgb(var(--acento-500));
+    box-shadow: 0 0 10px 2px rgb(var(--acento-500) / 0.7);
+    opacity: 0;
+  }
+  .leituras { @apply grid gap-3; }
+  .leitura {
+    @apply flex items-center gap-2.5;
+    font-size: 10px;
+    color: rgb(var(--papel-400));
+  }
+  .carimbo-demo {
+    @apply etiqueta px-2 py-1;
+    border: 3px double rgb(var(--erro-500));
+    color: rgb(var(--erro-100));
+    transform: rotate(-6deg);
+  }
+  .em-cena .varredura    { animation: demo-varrer 700ms cubic-bezier(0.65, 0, 0.35, 1) 100ms 2 both; }
+  .em-cena .leitura-1    { animation: demo-surgir 350ms ease 800ms both; }
+  .em-cena .leitura-2    { animation: demo-surgir 350ms ease 1500ms both; }
+  .em-cena .carimbo-demo { animation: demo-carimbo 420ms cubic-bezier(0.23, 1, 0.32, 1) 1500ms both; }
+
+  @keyframes demo-tingir   { from { color: rgb(var(--papel-50)); } }
+  @keyframes demo-marcar   { from { transform: scaleX(0); } }
+  @keyframes demo-surgir   { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-pedido   { from { opacity: 0; transform: translateY(6px) scale(0.9); } to { opacity: 1; transform: none; } }
+  @keyframes demo-recusar  { from { opacity: 1; } to { opacity: 0.35; } }
+  @keyframes demo-encher   { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+  @keyframes demo-chegar   { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: none; } }
+  @keyframes demo-apagar   { from { opacity: 1; } }
+  @keyframes demo-carimbar { from { opacity: 0; transform: scale(1.3) rotate(-6deg); } to { opacity: 1; transform: none; } }
+  @keyframes demo-trilho   { from { transform: scaleX(0); } }
+  @keyframes demo-acender  { from { opacity: 0; transform: scale(0.5); } }
+  @keyframes demo-varrer {
+    0%   { opacity: 0; transform: translateY(0); }
+    12%  { opacity: 1; }
+    88%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(5.3rem); }
+  }
+  @keyframes demo-carimbo  { from { opacity: 0; transform: scale(1.6) rotate(-14deg); } to { opacity: 1; transform: rotate(-6deg); } }
+}
+
+/* Movimento reduzido: as demonstrações mostram o estado final, parado. A regra
+   geral abaixo zera a duração mas não o atraso — sem isto, cada demo ficaria
+   vazia pelo tempo do atraso e depois apareceria de uma vez. */
+@media (prefers-reduced-motion: reduce) {
+  .em-cena *,
+  .em-cena *::before,
+  .em-cena *::after {
+    animation: none !important;
+  }
 }
 
 @layer utilities {
