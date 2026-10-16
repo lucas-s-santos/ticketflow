@@ -12,6 +12,10 @@ import type { Parada } from './ingresso-3d/roteiro';
 import { ComoFuncionaComponent } from './como-funciona/como-funciona.component';
 import { JanelaShowComponent } from './janela-show/janela-show.component';
 import { AssinaturaDemoComponent } from './assinatura-demo/assinatura-demo.component';
+import { PorDentroComponent } from './por-dentro/por-dentro.component';
+import { EmCartazComponent } from './em-cartaz/em-cartaz.component';
+import { MagneticoDirective } from '../../shared/directives/magnetico.directive';
+import type { EventResponse } from '../events/event.model';
 
 gsap.registerPlugin(SplitText);
 
@@ -59,6 +63,7 @@ const ROTEIRO: readonly Parada[] = [
   imports: [
     RouterLink, ParalaxeDirective, RevelarDirective, RevelarMascaraDirective, MarquiseComponent,
     Ingresso3dComponent, ComoFuncionaComponent, JanelaShowComponent, AssinaturaDemoComponent,
+    PorDentroComponent, EmCartazComponent, MagneticoDirective,
   ],
   template: `
     <!--
@@ -89,7 +94,7 @@ const ROTEIRO: readonly Parada[] = [
           </p>
 
           <div data-abertura class="flex flex-wrap items-center gap-3">
-            <a routerLink="/events" class="btn-principal">Ver eventos em cartaz</a>
+            <a routerLink="/events" appMagnetico class="btn-principal">Ver eventos em cartaz</a>
             <a href="#como-funciona"
                class="btn border border-papel-50/40 text-papel-50 hover:bg-papel-50 hover:text-tinta-900">
               Como funciona
@@ -201,13 +206,21 @@ const ROTEIRO: readonly Parada[] = [
             Aqui o canhoto é digital e assinado: só vale uma vez, e ninguém consegue
             forjar outro igual.
           </p>
-          <a routerLink="/events" class="btn-tinta">Começar pelos eventos</a>
+          <a routerLink="/events" appMagnetico class="btn-tinta">Começar pelos eventos</a>
         </div>
         @if (!semViagem()) {
           <div data-ancora="porque" aria-hidden="true" class="h-52 sm:h-64 lg:h-72"></div>
         }
       </div>
     </section>
+
+    <!--
+      ================= POR DENTRO E EM CARTAZ =================
+      Depois da última parada do ingresso, e não entre elas: entre duas paradas
+      ele viaja por cima do conteúdo, e uma seção ali seria atravessada por ele.
+    -->
+    <app-por-dentro />
+    <app-em-cartaz [eventos]="proximos()" />
 
     <!-- O ingresso 3D: um canvas fixo que percorre as âncoras acima, na ordem do roteiro. -->
     <app-ingresso-3d [roteiro]="roteiro" (semViagem)="semViagem.set(true)" />
@@ -221,6 +234,8 @@ export class HomeComponent implements OnInit, OnDestroy {
 
   /** Nomes dos proximos eventos, para a marquise. */
   readonly emCartaz = signal<string[]>([]);
+  /** Os mesmos eventos inteiros, para a vitrine "Em cartaz" no fim da página. */
+  readonly proximos = signal<EventResponse[]>([]);
 
   private readonly reduzido = typeof window !== 'undefined'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -284,7 +299,10 @@ export class HomeComponent implements OnInit, OnDestroy {
     // Falha silenciosa de proposito: a marquise e enfeite. Se a API estiver
     // fora, a home segue inteira sem ela, em vez de mostrar erro por um adorno.
     this.eventos.getEvents({}, 0, 10).subscribe({
-      next: (pagina) => this.emCartaz.set(pagina.content.map((e) => e.name)),
+      next: (pagina) => {
+        this.emCartaz.set(pagina.content.map((e) => e.name));
+        this.proximos.set(pagina.content);
+      },
       error: () => this.emCartaz.set([]),
     });
   }
