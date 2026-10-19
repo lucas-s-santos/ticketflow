@@ -1,6 +1,6 @@
 # Redesign visual do Canhoto — estado e próximos passos
 
-> Documento de continuação. Escrito em 2026-10-14 e atualizado em 2026-10-15,
+> Documento de continuação. Escrito em 2026-10-14 e atualizado em 2026-10-19,
 > para retomar o trabalho em outro computador, por uma pessoa ou por uma sessão
 > nova do Claude Code. Leia a seção 1 e a 5 antes de mexer em qualquer coisa.
 
@@ -20,6 +20,9 @@ inspora (seção 4).
   páginas (seção 6). De carona, um bug crítico de pagamento no backend (seção 8).
 - **Revisão de celular (2026-10-15):** todas as telas auditadas em 390×844 (script
   de auditoria na seção 7); nenhuma rola para o lado.
+- **Vídeos de divulgação (2026-10-19):** a pasta `gravacao/` grava o Reels do
+  Instagram e o vídeo do LinkedIn a partir do site rodando (item 11 do roteiro e
+  `gravacao/README.md`). Os MP4 ficam em `gravacao/saida/`, fora do repositório.
 - **Próximo:** regerar o vídeo da catraca (prompt corrigido no item 8) e decidir o
   modo escuro (item 9) — perguntar ao Lucas antes, porque muda a identidade.
 - **Dependências novas no front:** `gsap` 3.15, `three` 0.186, `@types/three` (dev).
@@ -42,6 +45,8 @@ npm start                            # http://localhost:4200
 ```
 
 Contas de demonstração: `organizador@demo.com` e `cliente@demo.com`, senha `demo123`.
+Para os vídeos há também a `marina@demo.com` (mesma senha), criada pelo
+`npm run dados` da pasta `gravacao/`.
 
 **Problemas já vistos:**
 
@@ -250,6 +255,39 @@ completa leva minutos para fotografar).
 
 ### 10. Micro-interações globais  ✅ feito (2026-10-15)
 - `.btn` encolhe para 0.97 no `:active` (no celular o dedo cobre o botão e descer 1 px não se via) e a transição lista só as propriedades que mudam. Setor do evento e tipo de conta no cadastro têm o mesmo retorno de toque. Hover só com mouse já vinha do `hoverOnlyWhenSupported`.
+
+### 11. Vídeos de divulgação  ✅ feito (2026-10-19)
+- **O quê:** `gravacao/` grava o site de verdade e monta dois vídeos — o Reels
+  no formato que o Lucas já posta (`exemplo-reels.mp4`: abertura gravada no
+  celular com um comentário de "cliente", transição em fatias, site numa janela
+  sobre a cor do projeto, tela final com o @) e o do LinkedIn (1920×1080, ~58 s,
+  compra completa até o check-in, com legendas). Como rodar, pôr a abertura e
+  mudar textos: `gravacao/README.md`.
+- **Falta:** gravar a abertura do Reels no celular e salvar em
+  `gravacao/entrada/abertura.mp4` (roteiro sugerido no README e na conversa de 2026-10-19).
+- **Por que gravar quadro a quadro:** o `page.screencast()` do Puppeteer saía em
+  405×720 e ~6 quadros únicos por segundo. O `palco.js` troca o relógio da página
+  por um virtual que anda 1/30 s por quadro; GSAP, Three.js, CSS, View
+  Transitions e o `<video>` obedecem, então o vídeo sai liso por mais que cada
+  print demore (~200 ms).
+- **Legenda fora do site (LinkedIn):** a primeira versão desenhava a legenda por
+  cima da página e cobria o ingresso 3D. Agora o site vai para uma janela sobre o
+  palco escuro e a legenda fica embaixo dela.
+- **Comentário do Reels mais baixo:** no exemplo ele ficava a 150 px do topo e o
+  @ do Reels cobria; agora fica a 290 px (`COMENTARIO.topo` em `instagram.mjs`).
+- **Achados de carona (as gravações mostraram):**
+  - O router não voltava a rolagem ao topo — clicar num evento do fim da lista
+    abria o detalhe já rolado para baixo. Corrigido com
+    `withInMemoryScrolling({ scrollPositionRestoration: 'enabled' })` no `app.config.ts`.
+  - Os setores do evento vinham na ordem física da tabela, que muda a cada
+    UPDATE: depois de reservar, o setor escolhido pulava de posição. Agora o
+    `EventService` ordena por preço e nome (`EventSectorOrderTest`).
+  - O check-in da portaria lia e depois gravava, sem trava: duas leituras
+    simultâneas do mesmo QR passavam as duas. Agora é um `UPDATE ... WHERE
+    checked_in_at IS NULL` (`ReservationRepository.marcarCheckIn`), com
+    `CheckInConcurrencyTest` (10 leituras ao mesmo tempo, uma entra).
+- **Cuidado:** não salvar arquivos do frontend durante uma gravação (o `npm start`
+  recarrega a página e a tomada se perde).
 
 ### Descartados
 - skiper6 como vitrine de equipe (não há equipe; só a ideia do item 4 serve).

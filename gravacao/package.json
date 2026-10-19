@@ -1,0 +1,15 @@
+{
+  "name": "canhoto-gravacao",
+  "private": true,
+  "type": "module",
+  "description": "Grava os vídeos de divulgação do Canhoto (Reels do Instagram e LinkedIn) dirigindo o site quadro a quadro.",
+  "scripts": {
+    "dados": "node preparar-dados.mjs",
+    "instagram": "node instagram.mjs",
+    "linkedin": "node linkedin.mjs",
+    "celular": "node celular.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.13.0"
+  }
+}
