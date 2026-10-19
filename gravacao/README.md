@@ -41,17 +41,21 @@ Segue o formato de `exemplo-reels.mp4` (na raiz do projeto):
    DESENVOLVEDOR WEB`, o site rodando numa janela de navegador e as tecnologias embaixo.
 3. **Tela final** preta com o @.
 
-Para pôr a abertura:
+A abertura sai dos vídeos do celular: `CORTES`, no topo de `instagram.mjs`,
+lista os trechos (arquivo, de, até — em segundos do original) e o script junta
+tudo, em pé e sem som, em `saida/abertura.mp4`. Os vídeos de 2026-10-19
+(`IMG_0304.MOV` e `IMG_0305.MOV`) ficam na raiz do projeto, fora do git. Um
+vídeo já editado também serve: `gravacao/entrada/abertura.mp4` ou
+`--abertura caminho.mp4`.
 
-1. Grave o vídeo em pé e salve como `gravacao/entrada/abertura.mp4` (a pasta não
-   vai para o git).
-2. Rode `npm run instagram -- --montar` — não grava o site de novo, só monta (~1 min).
-3. Abra `saida/previa-comentario.jpg`: é o comentário sobre a sua abertura, com
-   as faixas que a interface do Reels cobre pintadas de vermelho.
-4. Ajuste no topo de `instagram.mjs`, se precisar, e remonte:
-   - `COMENTARIO.aparece` — o segundo em que o comentário entra (quando você olha para cima);
-   - `COMENTARIO.topo` — a altura dele (290 px; o exemplo usava 150 e ficava sob o @);
-   - `COMENTARIO.texto` / `usuario` — o que o "cliente" pede.
+Depois de mudar um corte ou um texto, `npm run instagram -- --montar` (não grava
+o site de novo, ~2 min) e confira `saida/previa-comentario.jpg` — o comentário
+sobre a abertura, com as faixas que a interface do Reels cobre em vermelho.
+No topo de `instagram.mjs`:
+
+- `COMENTARIO.aparece` — o segundo da abertura em que o comentário entra (logo antes de você olhar para cima);
+- `COMENTARIO.topo` — a altura dele (290 px; o exemplo usava 150 e ficava sob o @);
+- `COMENTARIO.texto` / `usuario` — o que o "cliente" pede (cabe em duas linhas até ~100 caracteres).
 
 Cor do fundo, nome, cargo, @ e ícones das tecnologias ficam em `MARCA` e
 `ICONES`. Os ícones vêm do [Simple Icons](https://simpleicons.org) (CC0), em `lib/icones/`.

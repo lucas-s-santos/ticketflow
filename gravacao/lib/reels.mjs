@@ -36,8 +36,9 @@ const FONTES = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;
  * @param {Array<{arquivo?:string, texto?:string, nome:string}>} o.icones
  * @param {string} o.arquivo         MP4 final em saida/
  * @param {number} [o.segundosFinal] quanto a tela final fica parada
+ * @param {boolean} [o.somAbertura]  manter o som da abertura (o padrão é mudo: a música entra no app)
  */
-export async function montarReels({ site, abertura, comentario, marca, tituloJanela, icones, arquivo, segundosFinal = 3 }) {
+export async function montarReels({ site, abertura, comentario, marca, tituloJanela, icones, arquivo, segundosFinal = 3, somAbertura = false }) {
   const pasta = path.join(RAIZ, 'saida', 'artes-reels');
   await rm(pasta, { recursive: true, force: true });
   await mkdir(pasta, { recursive: true });
@@ -136,7 +137,7 @@ export async function montarReels({ site, abertura, comentario, marca, tituloJan
         </div>
         <div style="min-width:0;padding-top:2px">
           <div style="font:700 30px/1.25 Inter;color:#0F1113">${comentario.usuario}</div>
-          <div style="font:400 30px/1.32 Inter;color:#0F1113;margin-top:4px">${comentario.texto}</div>
+          <div style="font:400 30px/1.32 Inter;color:#0F1113;margin-top:4px;text-wrap:pretty">${comentario.texto}</div>
           <div style="font:600 22px/1 Inter;color:#8E9196;margin-top:16px">${comentario.quando}  ·  Responder</div>
         </div>
       </div>`, { transparente: true, recorte: '#cartao' });
@@ -146,7 +147,7 @@ export async function montarReels({ site, abertura, comentario, marca, tituloJan
   // ---------------------------------------------------------- composição
   const dSite = await duracao(site);
   const dAbertura = abertura ? await duracao(abertura) : 0;
-  const temAudio = abertura ? await temFaixaDeAudio(abertura) : false;
+  const temAudio = abertura && somAbertura ? await temFaixaDeAudio(abertura) : false;
   const dFinal = segundosFinal + DISSOLVE;
   const dCorpo = dSite + dFinal - DISSOLVE;
   const total = abertura ? dAbertura + dCorpo - TRANSICAO : dCorpo;
@@ -206,6 +207,26 @@ export async function montarReels({ site, abertura, comentario, marca, tituloJan
   await ffmpeg(['-y', '-v', 'error', '-ss', tCapa.toFixed(2), '-i', destino, '-frames:v', '1', '-q:v', '2', capa]);
   console.log(`  vídeo final: saida/${arquivo} (${total.toFixed(1)} s${abertura ? `, abertura de ${dAbertura.toFixed(1)} s` : ', sem abertura'}) + capa`);
   return { destino, cartao };
+}
+
+/**
+ * Junta os melhores trechos dos vídeos do celular numa abertura só, em pé
+ * (1080×1920, 30 qps). O iPhone grava deitado com rotação nos metadados; o
+ * ffmpeg já desvira. Sem som: os cortes ficam secos e a música entra no app.
+ *
+ * @param {Array<{arquivo:string, de:number, ate:number}>} cortes  em segundos do original
+ */
+export async function cortarAbertura(cortes, destino) {
+  const entradas = [];
+  const filtros = [];
+  cortes.forEach((c, i) => {
+    entradas.push('-ss', c.de.toFixed(3), '-t', (c.ate - c.de).toFixed(3), '-i', c.arquivo);
+    filtros.push(`[${i}:v]scale=${L}:${A}:force_original_aspect_ratio=increase,crop=${L}:${A},setsar=1,fps=${FPS},format=yuv420p,setpts=PTS-STARTPTS[t${i}]`);
+  });
+  filtros.push(`${cortes.map((_, i) => `[t${i}]`).join('')}concat=n=${cortes.length}:v=1:a=0[v]`);
+  await ffmpeg(['-y', '-v', 'error', ...entradas, '-filter_complex', filtros.join(';'), '-map', '[v]',
+    '-c:v', 'libx264', '-preset', 'slow', '-crf', '16', '-pix_fmt', 'yuv420p', '-r', String(FPS), '-an', destino]);
+  return destino;
 }
 
 /**

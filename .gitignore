@@ -55,3 +55,6 @@ desktop.ini
 # So a raiz: as barras iniciais impedem que a regra pegue as subpastas.
 /*.mp4
 /*.png
+# Vídeos do celular (abertura dos Reels): ~100 MB cada.
+/*.MOV
+/*.mov

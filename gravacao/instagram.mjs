@@ -6,14 +6,15 @@
 //   npm run instagram              → grava o site e monta saida/canhoto-instagram.mp4
 //   npm run instagram -- --montar  → só remonta (depois de trocar a abertura ou um texto)
 //
-// A abertura é o vídeo do celular salvo em gravacao/entrada/abertura.mp4 (ou
-// passado com --abertura caminho.mp4). Sem ele, o Reels começa direto no site.
+// A abertura sai dos vídeos do celular: os trechos de CORTES são juntados em
+// saida/abertura.mp4. Também dá para usar um vídeo já editado, em
+// gravacao/entrada/abertura.mp4 ou com --abertura caminho.mp4.
 // Toda montagem também gera saida/previa-comentario.jpg, para conferir onde o
 // comentário fica antes de postar.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { RAIZ, entrar, iniciar, limparPendentes } from './lib/gravador.mjs';
-import { montarReels, previaComentario } from './lib/reels.mjs';
+import { cortarAbertura, montarReels, previaComentario } from './lib/reels.mjs';
 
 const MARCA = {
   nome: 'LUCAS SILVA',
@@ -26,12 +27,26 @@ const MARCA = {
   rotulo: '#3B4B04',
 };
 
+/**
+ * Os melhores momentos das duas gravações de 2026-10-19 (IMG_0304 e IMG_0305,
+ * na raiz do projeto), em segundos do vídeo original.
+ */
+const VIDEOS = path.join(RAIZ, '..');
+const CORTES = [
+  // Mão no queixo, olha para cima lendo o comentário, levanta o dedo da ideia e sorri.
+  { arquivo: path.join(VIDEOS, 'IMG_0304.MOV'), de: 1.5, ate: 6.5 },
+  // Põe o fone olhando para a câmera: hora de trabalhar.
+  { arquivo: path.join(VIDEOS, 'IMG_0304.MOV'), de: 7.5, ate: 8.7 },
+  // Já de fones, aponta para o ingresso com o QR no celular — e a transição entra.
+  { arquivo: path.join(VIDEOS, 'IMG_0305.MOV'), de: 41.3, ate: 43.8 },
+];
+
 /** O comentário que aparece quando você olha para cima. */
 const COMENTARIO = {
   usuario: 'canhoto.ingressos',
-  texto: 'Lucas, precisamos de um site de ingressos que não venda o mesmo lugar duas vezes. Consegue fazer?',
+  texto: 'Oi, Lucas! Vi que você faz sites com elementos 3D. Consegue criar um ingresso que pareça de verdade?',
   quando: '1 sem',
-  aparece: 1.0, // segundo da abertura em que ele entra
+  aparece: 1.2, // segundo da abertura em que ele entra (logo antes de você olhar para cima)
   topo: 290,    // px do alto do vídeo (o exemplo usava 150 e ficava sob o @ do Reels)
 };
 
@@ -100,9 +115,14 @@ if (!process.argv.includes('--montar')) {
 }
 
 const aberturaPedida = argumento('--abertura');
-const padrao = path.join(RAIZ, 'entrada', 'abertura.mp4');
-const abertura = aberturaPedida ? path.resolve(aberturaPedida) : existsSync(padrao) ? padrao : undefined;
-if (!abertura) console.log('  sem abertura: grave o começo e salve em gravacao/entrada/abertura.mp4');
+const editada = path.join(RAIZ, 'entrada', 'abertura.mp4');
+let abertura;
+if (aberturaPedida) abertura = path.resolve(aberturaPedida);
+else if (existsSync(editada)) abertura = editada;
+else if (CORTES.every((c) => existsSync(c.arquivo))) {
+  abertura = await cortarAbertura(CORTES, path.join(RAIZ, 'saida', 'abertura.mp4'));
+  console.log(`  abertura: ${CORTES.length} trechos dos vídeos do celular`);
+} else console.log('  sem abertura: os vídeos de CORTES não estão na raiz do projeto');
 
 const { cartao } = await montarReels({
   site: path.join(RAIZ, 'saida', SITE), abertura, comentario: COMENTARIO, marca: MARCA,

@@ -6,14 +6,14 @@ Rascunhos para acompanhar os vídeos. Ajuste o tom à sua voz antes de postar.
 
 ## Instagram (Reels) — `canhoto-instagram.mp4`
 
-> Pediram um site de ingressos que não vendesse o mesmo lugar duas vezes. Fiz o Canhoto 🎟️
+> Me pediram um ingresso 3D que parecesse de verdade. Entreguei o sistema inteiro 🎟️
 >
-> A vaga trava no seu nome no instante do clique e fica guardada por 15 minutos
+> O ingresso gira, desce a página com a rolagem e rasga no fim. E por trás dele:
+> a vaga trava no seu nome no instante do clique e fica guardada por 15 minutos
 > enquanto você paga. O QR de cada ingresso é assinado: mudou um caractere, não
 > entra. E na portaria cada canhoto vale uma vez só.
 >
-> Java + Spring Boot, Angular, Three.js e GSAP — o ingresso 3D desce a página
-> junto com a rolagem.
+> Java + Spring Boot, Angular, Three.js e GSAP.
 >
 > Código aberto no GitHub, link na bio.
 >
