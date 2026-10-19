@@ -1,5 +1,5 @@
 import { ApplicationConfig, LOCALE_ID, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter, withViewTransitions } from '@angular/router';
+import { provideRouter, withInMemoryScrolling, withViewTransitions } from '@angular/router';
 import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { registerLocaleData } from '@angular/common';
 import localePt from '@angular/common/locales/pt';
@@ -17,7 +17,14 @@ export const appConfig: ApplicationConfig = {
     // View Transitions nativas: troca de página com crossfade curto, e a capa do
     // evento "voando" da lista até o banner do detalhe (ver styles.css).
     // Navegador sem suporte só troca de página, como antes.
-    provideRouter(routes, withViewTransitions({ skipInitialTransition: true })),
+    // Página nova abre no topo e o "voltar" devolve a rolagem de antes. Sem isso a
+    // rolagem passava de uma página para a outra: clicar num evento do fim da
+    // lista abria o detalhe já rolado para baixo.
+    provideRouter(
+      routes,
+      withViewTransitions({ skipInitialTransition: true }),
+      withInMemoryScrolling({ scrollPositionRestoration: 'enabled' }),
+    ),
     // withInterceptors: registra interceptors funcionais que processam toda requisição HTTP
     provideHttpClient(withInterceptors([jwtInterceptor])),
     // Define pt-BR como localidade padrão da aplicação
