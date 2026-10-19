@@ -50,23 +50,31 @@ public class TicketValidationService {
             return TicketValidationResultDto.invalid("NOT_OWNER");
         }
 
-        // 5. Ainda não foi usado
+        // 5. Ainda não foi usado (o caminho comum: a segunda leitura, segundos depois)
         if (reservation.getCheckedInAt() != null) {
-            return new TicketValidationResultDto(false, "ALREADY_USED",
-                    event.getName(), reservation.getTicketSector().getName(),
-                    reservation.getUser().getName(), reservation.getQuantity(),
-                    reservation.getCheckedInAt());
+            return jaUsado(reservation, event, reservation.getCheckedInAt());
         }
 
-        // 6. Check-in
-        reservation.setCheckedInAt(OffsetDateTime.now());
-        reservationRepository.save(reservation);
+        // 6. Check-in. A conferência de verdade é o UPDATE condicional: se outra
+        // leitura do mesmo QR passou entre o passo 5 e aqui, nada é atualizado.
+        OffsetDateTime agora = OffsetDateTime.now();
+        if (reservationRepository.marcarCheckIn(reservation.getId(), agora) == 0) {
+            log.warn("Check-in simultâneo recusado: reserva={}", reservation.getId());
+            return jaUsado(reservation, event, reservationRepository.buscarCheckIn(reservation.getId()));
+        }
         log.info("Check-in OK: reserva={}, evento={}, organizador={}",
                 reservation.getId(), event.getId(), organizerId);
 
         return new TicketValidationResultDto(true, "OK",
                 event.getName(), reservation.getTicketSector().getName(),
                 reservation.getUser().getName(), reservation.getQuantity(),
-                reservation.getCheckedInAt());
+                agora);
+    }
+
+    private static TicketValidationResultDto jaUsado(Reservation reservation, Event event, OffsetDateTime quando) {
+        return new TicketValidationResultDto(false, "ALREADY_USED",
+                event.getName(), reservation.getTicketSector().getName(),
+                reservation.getUser().getName(), reservation.getQuantity(),
+                quando);
     }
 }

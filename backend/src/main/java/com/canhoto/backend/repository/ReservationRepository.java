@@ -3,6 +3,7 @@ package com.canhoto.backend.repository;
 import com.canhoto.backend.entity.Reservation;
 import com.canhoto.backend.entity.ReservationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -46,6 +47,24 @@ public interface ReservationRepository extends JpaRepository<Reservation, UUID> 
             FOR UPDATE SKIP LOCKED
             """, nativeQuery = true)
     List<Reservation> travarVencidasParaExpirar(@Param("limite") int limite);
+
+    /**
+     * Check-in numa instrução só: marca o ingresso como usado apenas se ele ainda
+     * não foi usado. Devolve 1 para quem marcou e 0 para quem chegou depois.
+     *
+     * <p>Ler {@code checkedInAt == null} e depois gravar deixava uma janela: duas
+     * leituras do mesmo QR ao mesmo tempo (dois leitores na portaria, ou um print
+     * do ingresso repassado) viam as duas "ainda não usado" e liberavam as duas.
+     * Aqui o Postgres trava a linha no UPDATE; o segundo espera o primeiro
+     * terminar, reavalia o WHERE com o valor novo e não encontra nada.
+     */
+    @Modifying(flushAutomatically = true)
+    @Query("UPDATE Reservation r SET r.checkedInAt = :agora WHERE r.id = :id AND r.checkedInAt IS NULL")
+    int marcarCheckIn(@Param("id") UUID id, @Param("agora") OffsetDateTime agora);
+
+    /** Lê do banco (não do cache da sessão) quando o check-in foi feito. */
+    @Query("SELECT r.checkedInAt FROM Reservation r WHERE r.id = :id")
+    OffsetDateTime buscarCheckIn(@Param("id") UUID id);
 
     // Guardas de integridade: a FK reservations -> ticket_sectors é RESTRICT, então
     // apagar um setor (ou o evento inteiro) com reservas estouraria no banco.
