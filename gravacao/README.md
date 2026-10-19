@@ -98,4 +98,8 @@ As legendas e a cartela final ficam no topo de `linkedin.mjs` (`LEGENDAS` e
   é mudo — ponha a música no próprio app.
 - **LinkedIn:** suba `canhoto-linkedin.mp4` direto no post (vídeo nativo alcança
   mais que link). As legendas já estão no vídeo, que a maioria assiste sem som.
+  O LinkedIn não tem biblioteca de músicas: para pôr uma, baixe uma faixa livre
+  (Pixabay Music ou a Biblioteca de áudio do YouTube) e rode
+  `node musica.mjs saida/canhoto-linkedin.mp4 caminho/da/musica.mp3` — sai
+  `canhoto-linkedin-com-musica.mp4` em segundos, sem recodificar o vídeo.
 - Textos sugeridos para os dois posts: `textos-dos-posts.md`.
