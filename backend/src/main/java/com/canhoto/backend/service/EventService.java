@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -229,7 +230,11 @@ public class EventService {
     }
 
     private EventResponseDto toResponseDto(Event event, List<TicketSector> sectors) {
+        // Ordem fixa (mais barato primeiro). Sem ela os setores vinham na ordem física
+        // da tabela, que o Postgres muda a cada UPDATE: reservar um lugar fazia o setor
+        // escolhido pular de posição na tela.
         List<TicketSectorResponseDto> sectorDtos = sectors.stream()
+                .sorted(Comparator.comparing(TicketSector::getPrice).thenComparing(TicketSector::getName))
                 .map(s -> new TicketSectorResponseDto(s.getId(), s.getName(), s.getCapacity(),
                         s.getAvailableSeats(), s.getPrice()))
                 .toList();
